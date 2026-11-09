@@ -49,6 +49,11 @@ class ShellRecordingEngine {
     // Thread-safe flags for recording / paused state.
     private val recordingActive = AtomicBoolean(false)
     private val recordingPaused = AtomicBoolean(false)
+    private val captureFinished = AtomicBoolean(true)
+    @Volatile
+    private var stopDeadlineNanos = Long.MAX_VALUE
+    @Volatile
+    private var finalizationSucceeded = true
 
     private var outputFile: ParcelFileDescriptor? = null
     private var currentPlan: RecordingPlan? = null
@@ -94,11 +99,17 @@ class ShellRecordingEngine {
         var secondaryRead: Int = 0
     }
 
-    fun start(outputFile: ParcelFileDescriptor, plan: RecordingPlan, callback: IRecordingCallback) {
+    fun start(outputFile: ParcelFileDescriptor, plan: RecordingPlan, callback: IRecordingCallback): Boolean {
         synchronized(this) {
-            if (!recordingActive.compareAndSet(false, true)) {
-                throw IllegalStateException("A recording session is already active.")
+            if (recordingActive.get() || captureThread?.isAlive == true || encoderThread?.isAlive == true) {
+                outputFile.close()
+                return false
             }
+            recordingActive.set(true)
+            captureThread = null
+            encoderThread = null
+            stopDeadlineNanos = Long.MAX_VALUE
+            finalizationSucceeded = false
 
             try {
                 this.recordingCallback = callback
@@ -141,6 +152,9 @@ class ShellRecordingEngine {
                 // For dual-source (secondary), this help avoid mis-aligned audio streams.
                 primaryCapture!!.start()
                 secondaryCapture?.start()
+                val primary = checkNotNull(primaryCapture)
+                val secondary = secondaryCapture
+                captureFinished.set(false)
 
                 encoderThread = thread(name = "ShellRecordingEngine-EncoderThread", isDaemon = true) {
                     Process.setThreadPriority(Process.THREAD_PRIORITY_FOREGROUND)
@@ -150,26 +164,24 @@ class ShellRecordingEngine {
                 captureThread = thread(name = "ShellRecordingEngine-CaptureThread", isDaemon = true) {
                     // Set thread priority to reduce logging "RecordThread: buffer overflow" and audio glitches.
                     Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO)
-                    captureLoop()
+                    captureLoop(primary, secondary)
                 }
 
                 // Register the shutdown hook to finalize the recording session if the shell process exits unexpectedly.
                 attachShutdownHook()
 
                 AppLogger.i("Native audio capture started.")
+                return true
             } catch (e: Throwable) { // Catch ALL (include low-level exceptions) that may occur.
                 AppLogger.e("Failed to start native recording session.", e)
-                reportFailure(RecordingFailure.CAPTURE_START_FAILED)
                 // Stop the recording session to clean up resources and reset the state.
                 stop()
+                return false
             }
         }
     }
 
-    private fun captureLoop() {
-        val primary = checkNotNull(primaryCapture)
-        val secondary = secondaryCapture
-
+    private fun captureLoop(primary: IAudioCapture<*>, secondary: IAudioCapture<*>?) {
         // Trash buffers for shedding load when the encoder is backed up
         // NOTE: WE MUST use allocateDirect() here because AudioRecord.read(ByteBuffer) requires a direct buffer. Else read() will always return 0.
         val trashPrimaryBuffer = ByteBuffer.allocateDirect(AudioConfig.BLOCK_SIZE_BYTES).order(ByteOrder.nativeOrder())
@@ -196,7 +208,7 @@ class ShellRecordingEngine {
                 if (primaryRead == 0) {
                     consecutivePrimaryZeroReads++
                     if (consecutivePrimaryZeroReads % AudioConfig.ZERO_READ_WARNING_INTERVAL == 0L) {
-                        AppLogger.w("Primary audio capture is returning 0 bytes ($consecutivePrimaryZeroReads consecutive zero-byte reads). Was reported as silenced by Android? --> ${primaryCapture!!.isCaptureSilenced()}")
+                        AppLogger.w("Primary audio capture is returning 0 bytes ($consecutivePrimaryZeroReads consecutive zero-byte reads). Was reported as silenced by Android? --> ${primary.isCaptureSilenced()}")
                     }
                 } else consecutivePrimaryZeroReads = 0
 
@@ -217,7 +229,7 @@ class ShellRecordingEngine {
                     if (secondaryRead == 0) {
                         consecutiveSecondaryZeroReads++
                         if (consecutiveSecondaryZeroReads % AudioConfig.ZERO_READ_WARNING_INTERVAL == 0L) {
-                            AppLogger.w("Secondary audio capture is returning 0 bytes ($consecutiveSecondaryZeroReads consecutive zero-byte reads). Was reported as silenced by Android? --> ${secondaryCapture?.isCaptureSilenced()}")
+                            AppLogger.w("Secondary audio capture is returning 0 bytes ($consecutiveSecondaryZeroReads consecutive zero-byte reads). Was reported as silenced by Android? --> ${secondary.isCaptureSilenced()}")
                         }
                     } else consecutiveSecondaryZeroReads = 0
 
@@ -245,9 +257,12 @@ class ShellRecordingEngine {
                 readyQueue.put(frame) // Send to encoder thread
             }
         } catch (t: Throwable) {
-            if (recordingActive.get()) AppLogger.e("Audio capture loop failed.", t)
-            reportFailure(RecordingFailure.CAPTURE_READ_FAILED)
-            stop()
+            if (recordingActive.getAndSet(false)) {
+                AppLogger.e("Audio capture loop failed.", t)
+                reportFailure(RecordingFailure.CAPTURE_READ_FAILED)
+            }
+        } finally {
+            captureFinished.set(true)
         }
     }
 
@@ -263,7 +278,7 @@ class ShellRecordingEngine {
         var blocksRead = 0L
 
         try {
-            while (recordingActive.get() || !readyQueue.isEmpty()) {
+            while (recordingActive.get() || !captureFinished.get() || !readyQueue.isEmpty()) {
                 // Use poll with a timeout so it doesn't block forever if the session ends abruptly
                 val frame = readyQueue.poll(100, TimeUnit.MILLISECONDS) ?: continue
 
@@ -297,7 +312,8 @@ class ShellRecordingEngine {
 
                 encoder?.encode(
                     pcm = outputBuffer,
-                    presentationTimeUs = presentationTimeUs
+                    presentationTimeUs = presentationTimeUs,
+                    deadlineNanos = stopDeadlineNanos
                 )
 
                 clock.advance(frameCount.toLong())
@@ -312,7 +328,9 @@ class ShellRecordingEngine {
         } catch (t: Throwable) {
             AppLogger.e("Audio encoding loop failed.", t)
             reportFailure(RecordingFailure.CAPTURE_READ_FAILED)
-            stop()
+        } finally {
+            recordingActive.set(false)
+            finalizeOutput()
         }
     }
 
@@ -348,19 +366,22 @@ class ShellRecordingEngine {
         }
     }
 
-    fun stop() {
+    fun stop(): Boolean {
         synchronized(this) {
             val isActive = recordingActive.compareAndSet(true, false)
             val hasResources = primaryCapture != null || secondaryCapture != null || encoder != null || outputFile != null
 
             if (!isActive && !hasResources) {
                 AppLogger.d("stop() called without an active session and without resources.")
-                return
+                return finalizationSucceeded
             } else if (!isActive && hasResources) {
                 AppLogger.w("stop() called without an active session, but resources are still allocated. Cleaning up resources.")
             }
 
             AppLogger.i("Stopping native recording session...")
+            if (stopDeadlineNanos == Long.MAX_VALUE) {
+                stopDeadlineNanos = System.nanoTime() + 2_000_000_000L
+            }
 
             /*
              * Stop the audio captures first so blocking read() calls can return on the captureThread loop.
@@ -388,7 +409,10 @@ class ShellRecordingEngine {
                     AppLogger.w("Failed waiting for capture thread shutdown.", it)
                 }
             }
-            captureThread = null
+            if (cThread?.isAlive != true) {
+                captureThread = null
+                captureFinished.set(true)
+            }
 
             val eThread = encoderThread
             if (eThread != null && eThread !== Thread.currentThread()) {
@@ -398,42 +422,50 @@ class ShellRecordingEngine {
                     AppLogger.w("Failed waiting for encoder thread shutdown.", it)
                 }
             }
-            encoderThread = null
-
-            /*
-             * At this point no more new PCM is being submitted to MediaCodec.
-             * Now flush/finalize the encoder and close the output file descriptor.
-             */
-            runCatching {
-                // Write the end-of-stream signal to the encoder and wait for it to finish.
-                encoder?.finish()
-            }.onFailure {
-                AppLogger.e("Failed to finalize audio encoder.", it)
+            if (eThread == null) {
+                // Initialization failed before the encoding thread took ownership.
+                finalizeOutput()
+            } else if (!eThread.isAlive) {
+                encoderThread = null
+            } else {
+                AppLogger.w("Encoding thread is still finishing; output remains owned by that thread.")
             }
 
-            runCatching {
-                encoder?.release()
-            }.onFailure {
-                AppLogger.w("Failed to release audio encoder.", it)
-            }
-
-            encoder = null
-            currentPlan = null
-
-            // We close the output file descriptor last, after the encoder has been finalized and released.
-            runCatching {
-                outputFile?.close()
-            }.onFailure {
-                AppLogger.w("Failed to close recording output descriptor.", it)
-            }
-
-            outputFile = null
-            recordingCallback = null
-            recordingPaused.set(false)
-            detachShutdownHook()
-
-            AppLogger.i("Native recording session stopped.")
+            AppLogger.i("Native recording stop requested.")
+            return eThread?.isAlive != true && finalizationSucceeded
         }
+    }
+
+    /** Only the encoder thread (or failed initialization before it exists) may close the output. */
+    private fun finalizeOutput() {
+        val finished = runCatching {
+            encoder?.finish()
+        }.onFailure {
+            AppLogger.e("Failed to finalize audio encoder.", it)
+        }.isSuccess
+
+        val released = runCatching {
+            encoder?.release() != false
+        }.onFailure {
+            AppLogger.w("Failed to release audio encoder.", it)
+        }.getOrDefault(false)
+
+        encoder = null
+        currentPlan = null
+
+        val closed = runCatching {
+            outputFile?.close()
+        }.onFailure {
+            AppLogger.w("Failed to close recording output descriptor.", it)
+        }.isSuccess
+
+        outputFile = null
+        recordingCallback = null
+        recordingPaused.set(false)
+        finalizationSucceeded = finished && released && closed
+        detachShutdownHook()
+
+        AppLogger.i("Native recording output finalized and released.")
     }
 
     /**

@@ -17,9 +17,7 @@ import com.kitsumed.shizucallrecorder.services.shell.recording.AudioConfig
 import com.kitsumed.shizucallrecorder.utils.AppLogger
 import java.io.FileDescriptor
 import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import kotlin.time.Duration.Companion.hours
-import kotlin.time.Duration.Companion.seconds
+import java.util.concurrent.TimeoutException
 
 /**
  * Encodes PCM audio with Android MediaCodec and writes the encoded samples directly into the final container using MediaMuxer.
@@ -39,6 +37,7 @@ class AudioEncoder(
          * Unit: microseconds
          */
         private const val CODEC_TIMEOUT_US = 1_000L
+        private const val CODEC_STALL_TIMEOUT_NS = 2_000_000_000L
     }
 
     private val mediaCodec = MediaCodec.createEncoderByType(codec.mimeType)
@@ -52,6 +51,7 @@ class AudioEncoder(
     private var audioTrack = -1
     private var inputEnded = false
     private var released = false
+    private var releaseSucceeded = true
 
     init {
         if (channelCount == 2 && codec.minStereoBitRate != null && bitrate < codec.minStereoBitRate) {
@@ -108,18 +108,21 @@ class AudioEncoder(
      *
      * @param pcm PCM16 data.
      * @param presentationTimeUs Presentation timestamp of the first frame.
+     * @param deadlineNanos Monotonic deadline imposed by session shutdown, if any.
+     * @throws TimeoutException if the codec cannot complete before the deadline.
      */
-    fun encode(pcm: ByteBuffer, presentationTimeUs: Long) {
+    fun encode(pcm: ByteBuffer, presentationTimeUs: Long, deadlineNanos: Long = Long.MAX_VALUE) {
         check(!released) { "AudioEncoder has already been released." }
+        val inputDeadline = minOf(deadlineNanos, System.nanoTime() + CODEC_STALL_TIMEOUT_NS)
 
         val frameSize = channelCount * AudioConfig.PCM_BYTES_PER_SAMPLE
         var sourceOffset = 0
 
         while (pcm.hasRemaining()) {
             // Drain output FIRST to prevent deadlocks
-            drainOutput()
+            drainOutput(deadlineNanos = inputDeadline)
 
-            val inputIndex = waitForInputBuffer()
+            val inputIndex = waitForInputBuffer(inputDeadline)
             if (inputIndex < 0) {
                 // The encoder was released while we were waiting. Exit the loop safely.
                 break
@@ -156,18 +159,21 @@ class AudioEncoder(
 
             sourceOffset += bytesToCopy
         }
-        drainOutput()
+        drainOutput(deadlineNanos = inputDeadline)
     }
 
     /**
      * Finishes the encoder and drains all remaining encoded samples.
+     * @throws TimeoutException if the codec does not reach end-of-stream within two seconds.
      */
     fun finish() {
         if (released || !codecStarted || inputEnded) {
             return
         }
 
-        val inputIndex = waitForInputBuffer()
+        val deadlineNanos = System.nanoTime() + CODEC_STALL_TIMEOUT_NS
+        val inputIndex = waitForInputBuffer(deadlineNanos)
+        if (inputIndex < 0) return
 
         mediaCodec.queueInputBuffer(
             inputIndex,
@@ -179,51 +185,54 @@ class AudioEncoder(
 
         inputEnded = true
 
-        drainOutput(waitForEndOfStream = true)
+        drainOutput(waitForEndOfStream = true, deadlineNanos = deadlineNanos)
     }
 
     /**
      * Releases MediaCodec and MediaMuxer.
+     * @return false if either resource could not be stopped or released.
      */
-    fun release() {
+    fun release(): Boolean {
         if (released) {
-            return
+            return releaseSucceeded
         }
 
         released = true
 
-        runCatching {
+        val codecStopped = runCatching {
             if (codecStarted) {
                 mediaCodec.stop()
             }
         }.onFailure {
             AppLogger.w("Failed to stop MediaCodec.", it)
-        }
+        }.isSuccess
 
-        runCatching {
+        val codecReleased = runCatching {
             mediaCodec.release()
         }.onFailure {
             AppLogger.w("Failed to release MediaCodec.", it)
-        }
+        }.isSuccess
 
         codecStarted = false
 
-        runCatching {
+        val muxerStopped = runCatching {
             if (muxerStarted) {
                 mediaMuxer.stop()
             }
         }.onFailure {
             AppLogger.w("Failed to stop MediaMuxer.", it)
-        }
+        }.isSuccess
 
-        runCatching {
+        val muxerReleased = runCatching {
             mediaMuxer.release()
         }.onFailure {
             AppLogger.w("Failed to release MediaMuxer.", it)
-        }
+        }.isSuccess
 
         muxerStarted = false
         audioTrack = -1
+        releaseSucceeded = codecStopped && codecReleased && muxerStopped && muxerReleased
+        return releaseSucceeded
     }
 
     /**
@@ -231,14 +240,15 @@ class AudioEncoder(
      *
      * @return The index of the available input buffer, or -1 if the encoder was released.
      */
-    private fun waitForInputBuffer(): Int {
+    private fun waitForInputBuffer(deadlineNanos: Long): Int {
         while (!released) {
+            checkDeadline(deadlineNanos)
             val inputIndex = mediaCodec.dequeueInputBuffer(CODEC_TIMEOUT_US)
 
             if (inputIndex >= 0) {
                 return inputIndex
             }
-            drainOutput()
+            drainOutput(deadlineNanos = deadlineNanos)
         }
         return -1
     }
@@ -247,8 +257,9 @@ class AudioEncoder(
      * Drains the output buffers from MediaCodec (encoded data) and writes them to MediaMuxer (write the encoded data to the file).
      * @param waitForEndOfStream If true, will continue draining until the end of stream is reached.
      */
-    private fun drainOutput(waitForEndOfStream: Boolean = false) {
+    private fun drainOutput(waitForEndOfStream: Boolean = false, deadlineNanos: Long) {
         while (!released) {
+            checkDeadline(deadlineNanos)
             when (val outputIndex = mediaCodec.dequeueOutputBuffer(bufferInfo, CODEC_TIMEOUT_US)) {
                 // When no more encoded data is waiting, we can exit
                 MediaCodec.INFO_TRY_AGAIN_LATER -> {
@@ -292,6 +303,12 @@ class AudioEncoder(
                     }
                 }
             }
+        }
+    }
+
+    private fun checkDeadline(deadlineNanos: Long) {
+        if (System.nanoTime() - deadlineNanos >= 0) {
+            throw TimeoutException("Audio codec did not complete within its two-second deadline.")
         }
     }
 

@@ -114,6 +114,13 @@ class RecordingNotificationHelper(private val context: Context) {
         val subRes: Int = if (state.metadata == null || state.metadata?.isCrossCountry == true) R.string.recording_notification_cross_country_tip else R.string.recording_notification_current_country_tip
 
         when (state) {
+            is RecordingServiceState.Stopping -> {
+                titleRes = R.string.recording_notification_title
+                contentRes = R.string.recording_notification_saving
+                actionIcon = null
+                actionText = null
+                actionIntentAction = null
+            }
             is RecordingServiceState.Starting -> {
                 titleRes = R.string.recording_standby_notification_title
                 contentRes = R.string.recording_notification_waiting_shizuku
@@ -168,7 +175,7 @@ class RecordingNotificationHelper(private val context: Context) {
             .setOnlyAlertOnce(true)
             .setColor(Green40.toArgb())
             .setColorized(state.isRecordingActive && !state.isRecordingPaused)
-            .setSilent(state.isStarting || state.isRecordingActive) // Don't do a screen-incursion if we are already recording.
+            .setSilent(state.isStarting || state.isRecordingActive || state is RecordingServiceState.Stopping)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
 
         if (actionText != null && actionIntentAction != null && actionIcon != null) {

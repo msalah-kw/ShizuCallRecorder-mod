@@ -9,6 +9,7 @@
 package com.kitsumed.shizucallrecorder.data.call
 
 import android.content.Context
+import android.database.SQLException
 import android.net.Uri
 import android.os.Parcelable
 import android.provider.ContactsContract
@@ -124,13 +125,19 @@ data class EnrichedCallData(
             val lookupUri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, Uri.encode(phoneNumber))
             val projection = arrayOf(ContactsContract.PhoneLookup.DISPLAY_NAME)
 
-            return context.contentResolver.query(lookupUri, projection, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    val nameIndex = cursor.getColumnIndex(ContactsContract.PhoneLookup.DISPLAY_NAME)
-                    if (nameIndex != -1) {
-                        cursor.getString(nameIndex)
+            return try {
+                context.contentResolver.query(lookupUri, projection, null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val nameIndex = cursor.getColumnIndex(ContactsContract.PhoneLookup.DISPLAY_NAME)
+                        if (nameIndex != -1) cursor.getString(nameIndex) else null
                     } else null
-                } else null
+                }
+            } catch (e: SecurityException) {
+                AppLogger.w("Contact name permission changed during lookup; exclusion checks still apply.", e)
+                null
+            } catch (e: SQLException) {
+                AppLogger.w("Contact name is unavailable; exclusion checks still apply.", e)
+                null
             }
         }
 

@@ -71,7 +71,7 @@ class RecordingOverlayController(private val context: Context) {
      * If the overlay is disabled in preferences or the app lacks overlay permission, it will hide the overlay instead.
      */
     fun showOverlay(state: RecordingServiceState) {
-        if (!appPreferences.isOverlayEnabled() || !PermissionChecks.hasOverlayPermission(context)) {
+        if (state is RecordingServiceState.Stopping || !appPreferences.isOverlayEnabled() || !PermissionChecks.hasOverlayPermission(context)) {
             hideOverlay()
             return
         }

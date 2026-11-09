@@ -25,12 +25,15 @@ import com.kitsumed.shizucallrecorder.integrations.shizuku.ShizukuConnectionMana
 import com.kitsumed.shizucallrecorder.utils.AppLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
@@ -38,6 +41,7 @@ import kotlin.coroutines.cancellation.CancellationException
  */
 class RecordingForegroundService : Service() {
     companion object {
+        private var latestGeneration = 0L
         // -- Intent action for controlling and initializing the service lifecycle. --
 
         /** Intent action sent to this service to initialize the service and immediately start a new recording session. */
@@ -82,6 +86,9 @@ class RecordingForegroundService : Service() {
 
     /** Scope for service lifecycle operations (binding, etc.) */
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var startJob: Job? = null
+    private var pendingCommand: Intent? = null
+    private var generation = 0L
 
     // ── Recording session state ────────────────────────────────────────────────────────
 
@@ -95,6 +102,7 @@ class RecordingForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        generation = ++latestGeneration
         notificationHelper = RecordingNotificationHelper(this)
         notificationHelper.createNotificationChannels()
         overlayController = RecordingOverlayController(this)
@@ -163,9 +171,17 @@ class RecordingForegroundService : Service() {
         // as starting/waiting for Shizuku can take long enough for the OS to kill the service.
         updateNotification()
 
+        if (state is RecordingServiceState.Stopping && action != ACTION_NOTIFICATION_DISMISSED) {
+            when (action) {
+                ACTION_START_RECORDING, ACTION_STANDBY -> pendingCommand = Intent(intent)
+                ACTION_STOP_RECORDING -> pendingCommand = null
+            }
+            return START_NOT_STICKY
+        }
+
         when (action) {
             ACTION_START_RECORDING, ACTION_MANUAL_START -> {
-                if (state.isRecordingActive) {
+                if (state !is RecordingServiceState.Standby) {
                     AppLogger.w( "Start request ignored. A session is already on-going.")
                     return START_NOT_STICKY
                 }
@@ -182,8 +198,9 @@ class RecordingForegroundService : Service() {
 
                 // If enabled in the user preferences, we try to start the Shizuku as we are now starting the recording.
                 tryStartShizukuServer()
+                if (_serviceState.value is RecordingServiceState.Stopping) return START_NOT_STICKY
 
-                serviceScope.launch {
+                startJob = serviceScope.launch {
                     try {
                         // Wait for Shizuku server to be available
                         ShizukuConnectionManager.waitForServer()
@@ -215,6 +232,7 @@ class RecordingForegroundService : Service() {
             }
 
             ACTION_STANDBY -> {
+                if (state !is RecordingServiceState.Standby) return START_NOT_STICKY
                 _serviceState.update { RecordingServiceState.Standby(currentMeta) }
                 serviceScope.launch {
                     // If enabled in the user preferences, we try to start the Shizuku server as early as possible (in the standby state, RINGING/OUTGOING),
@@ -276,15 +294,28 @@ class RecordingForegroundService : Service() {
     }
 
     override fun onDestroy() {
-        // Always clean up, even if the OS kills the service mid-recording.
-        // This is the guaranteed last callback before the service process is cleaned up.
         AppLogger.v( "RecordingForegroundService is destroying... Ensuring cleanup...")
+        val session = when (val state = _serviceState.value) {
+            is RecordingServiceState.Active -> state.session
+            is RecordingServiceState.Stopping -> state.session
+            else -> null
+        }
         serviceScope.cancel()
         overlayController.hideOverlay()
-        stopRecordingSessionAndService()
-        shizukuManager.unbind()
-        if (appPreferences.isShizukuAutoManageEnabled() && !appPreferences.isShizukuKeepAliveEnabled()) {
-            ShizukuConnectionManager.stopServer(this, appPreferences.getShizukuAuthKey())
+        val cleanupScope = CoroutineScope(Dispatchers.IO)
+        cleanupScope.launch {
+            try {
+                session?.release()
+            } finally {
+                withContext(Dispatchers.Main) {
+                    shizukuManager.unbind()
+                    // A replacement service may already be recording a new call.
+                    if (generation == latestGeneration && appPreferences.isShizukuAutoManageEnabled() && !appPreferences.isShizukuKeepAliveEnabled()) {
+                        ShizukuConnectionManager.stopServer(this@RecordingForegroundService, appPreferences.getShizukuAuthKey())
+                    }
+                }
+                cleanupScope.cancel()
+            }
         }
         super.onDestroy()
     }
@@ -318,10 +349,10 @@ class RecordingForegroundService : Service() {
                 // Handle events reported by the remote recording engine
                 listener = object : RecordingSession.SessionListener {
                     override fun onSessionFailed(failure: RecordingFailure) {
-                        val userFriendlyMessage = getString(failure.descriptionResId)
-                        AppLogger.w("Recording session was notified of a failure with error: $failure. Showing user-friendly message: $userFriendlyMessage")
-                        notificationHelper.showErrorNotification(userFriendlyMessage)
-                        stopRecordingSessionAndService()
+                        serviceScope.launch {
+                            notificationHelper.showErrorNotification(getString(failure.descriptionResId))
+                            stopRecordingSessionAndService()
+                        }
                     }
                 }
             )
@@ -347,45 +378,39 @@ class RecordingForegroundService : Service() {
      * Stops the current recording session (if any) and stops the foreground service.
      */
     private fun stopRecordingSessionAndService() {
-        val activeSession = (_serviceState.value as? RecordingServiceState.Active)?.session
+        val state = _serviceState.value
+        if (state is RecordingServiceState.Stopping) return
+        val activeSession = (state as? RecordingServiceState.Active)?.session
+        _serviceState.value = RecordingServiceState.Stopping(activeSession, state.metadata)
+        startJob?.cancel()
 
-        if (activeSession == null) {
-            AppLogger.d("No active session, exiting standby state, removing foreground notification and stopping service.")
-            stopForeground(STOP_FOREGROUND_REMOVE)
-            stopSelf()
-            return
-        }
-
-        AppLogger.i("Stopping active recording session, removing foreground notification and stopping service...")
-        activeSession.release()
-
-        // If the user has enabled post-recording file actions, show a notification with options.
-        if (appPreferences.isPostRecordingFileActionsNotificationEnabled()) {
-            activeSession.currentRecordingUri?.let { filePathUri ->
-                activeSession.initializationMetadata.let { metadata ->
-
-                    // Ensure the file was written and exists
-                    val docFile = DocumentFile.fromSingleUri(applicationContext, filePathUri)
-                    if (docFile != null && docFile.exists() && docFile.length() > 0) {
-                        AppLogger.d("Showing post-recording notification for user actions.")
-
-                        notificationHelper.showPostCallNotification(
-                            filePathUri,
-                            metadata
-                        )
+        serviceScope.launch {
+            val (finalized, savedUri) = withContext(NonCancellable + Dispatchers.IO) {
+                val completed = activeSession?.release() != false
+                val uri = if (completed && appPreferences.isPostRecordingFileActionsNotificationEnabled()) {
+                    activeSession?.currentRecordingUri?.takeIf { uri ->
+                        val file = DocumentFile.fromSingleUri(applicationContext, uri)
+                        file != null && file.exists() && file.length() > 0
                     }
-                }
+                } else null
+                completed to uri
+            }
+            if (!finalized) {
+                notificationHelper.showErrorNotification(getString(R.string.recording_error_save_failed))
+            }
+            if (savedUri != null && activeSession != null) {
+                notificationHelper.showPostCallNotification(savedUri, activeSession.initializationMetadata)
+            }
+            _serviceState.value = RecordingServiceState.Standby(null)
+            val nextCommand = pendingCommand
+            pendingCommand = null
+            if (nextCommand != null) {
+                onStartCommand(nextCommand, 0, 0)
+            } else {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+                stopSelf()
             }
         }
-
-        _serviceState.update {
-            RecordingServiceState.Standby(null)
-        }
-
-        AppLogger.i("Recording session stopped and resources released. Stopping foreground service.")
-
-        stopForeground(STOP_FOREGROUND_REMOVE)
-        stopSelf() // Stop the service since the session is over
     }
 
     /**

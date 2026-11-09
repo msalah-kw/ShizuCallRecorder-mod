@@ -16,11 +16,14 @@ import com.kitsumed.shizucallrecorder.data.AppPreferences
 import com.kitsumed.shizucallrecorder.data.call.CallDirection
 import com.kitsumed.shizucallrecorder.data.call.EnrichedCallData
 import com.kitsumed.shizucallrecorder.data.call.RawCallData
+import com.kitsumed.shizucallrecorder.R
 import com.kitsumed.shizucallrecorder.services.recording.RecordingForegroundService
+import com.kitsumed.shizucallrecorder.services.recording.RecordingNotificationHelper
 import com.kitsumed.shizucallrecorder.system.permissions.PermissionChecks
 import com.kitsumed.shizucallrecorder.utils.AppLogger
 import com.kitsumed.shizucallrecorder.utils.PhoneNumberManager
 import com.kitsumed.shizucallrecorder.utils.SponsorNotificationHelper
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * RecordingDecisionEngine is responsible for making autonomous decisions about call recording.
@@ -159,7 +162,7 @@ class RecordingDecisionEngine private constructor(context: Context) {
             appPreferences.getIgnoredContactsIncoming()
         )
         ) {
-            AppLogger.i( "Ignoring incoming call: contact filter matched")
+            AppLogger.i("Contact exclusion prevents automatic incoming recording.")
             return false
         }
 
@@ -194,7 +197,7 @@ class RecordingDecisionEngine private constructor(context: Context) {
             appPreferences.getIgnoredContactsOutgoing()
         )
         ) {
-            AppLogger.i( "Ignoring outgoing call: contact filter matched")
+            AppLogger.i("Contact exclusion prevents automatic outgoing recording.")
             return false
         }
 
@@ -208,19 +211,28 @@ class RecordingDecisionEngine private constructor(context: Context) {
      * @param normalisedNumber The normalized phone number to check
      * @param mode The contact ignore mode (NONE, ALL, or SELECTED)
      * @param ignoredContactsLookupId Set of Contacts (lookup ID) to check against (for SELECTED mode)
-     * @return true if the call should be ignored, false otherwise
+     * @return true if the contact matches, or an enabled filter cannot be checked.
+     * Unknown numbers retain the separate anonymous-call policy.
      */
     private fun shouldIgnoreContact(
         normalisedNumber: String,
         mode: AppPreferences.IgnoreContactsMode,
         ignoredContactsLookupId: Set<String>
     ): Boolean {
+        if (mode == AppPreferences.IgnoreContactsMode.NONE ||
+            (mode == AppPreferences.IgnoreContactsMode.SELECTED && ignoredContactsLookupId.isEmpty())) {
+            return false
+        }
 
         // Fix error when phone number is blank: https://github.com/kitsumed/ShizuCallRecorder/issues/95
         // For example, this could happen with third-party app that define text in the phone numbers field, these get stripped out by us
         if (normalisedNumber.isBlank()) {
             AppLogger.i( "Cannot determine if contact should be ignored: phone number is blank, returning false")
             return false
+        }
+
+        if (!PermissionChecks.hasContactsPermission(appContext)) {
+            return skipRecordingForUnavailableContacts()
         }
 
         val lookupUri = Uri.withAppendedPath(
@@ -233,9 +245,6 @@ class RecordingDecisionEngine private constructor(context: Context) {
                 AppPreferences.IgnoreContactsMode.NONE -> false
 
                 AppPreferences.IgnoreContactsMode.ALL -> {
-                    if (!PermissionChecks.hasContactsPermission(appContext)) {
-                        return false
-                    }
                     appContext.contentResolver.query(
                         lookupUri,
                         arrayOf(ContactsContract.PhoneLookup._ID),
@@ -244,22 +253,18 @@ class RecordingDecisionEngine private constructor(context: Context) {
                         null
                     )?.use { cursor ->
                         cursor.moveToFirst()
-                    } ?: false
+                    } ?: skipRecordingForUnavailableContacts()
                 }
 
                 AppPreferences.IgnoreContactsMode.SELECTED -> {
-                    // If no contacts are selected, we can skip the query and return false directly
-                    if (!PermissionChecks.hasContactsPermission(appContext) || ignoredContactsLookupId.isEmpty()) {
-                        return false
-                    }
-
-                    appContext.contentResolver.query(
+                    val cursor = appContext.contentResolver.query(
                         lookupUri,
                         arrayOf(ContactsContract.PhoneLookup.LOOKUP_KEY),
                         null,
                         null,
                         null
-                    )?.use { cursor ->
+                    ) ?: return skipRecordingForUnavailableContacts()
+                    cursor.use {
                         val lookupIdIndex = cursor.getColumnIndexOrThrow(ContactsContract.PhoneLookup.LOOKUP_KEY)
                         while (cursor.moveToNext()) {
                             val contactLookupId = cursor.getString(lookupIdIndex)
@@ -272,9 +277,20 @@ class RecordingDecisionEngine private constructor(context: Context) {
                 }
             }
         } catch (e: Exception) {
-            AppLogger.e( "Error while checking contact ignore status for number: $normalisedNumber", e)
-            return false
+            if (e is CancellationException) throw e
+            // Provider failures cannot be interpreted as a non-matching contact.
+            AppLogger.e("Contact exclusion lookup failed; automatic recording is blocked.", e)
+            return skipRecordingForUnavailableContacts()
         }
+    }
+
+    private fun skipRecordingForUnavailableContacts(): Boolean {
+        AppLogger.w("Cannot verify contact exclusions; keeping this call in standby.")
+        RecordingNotificationHelper(appContext).apply {
+            createNotificationChannels()
+            showErrorNotification(appContext.getString(R.string.recording_error_contacts_unavailable))
+        }
+        return true
     }
 
     /**

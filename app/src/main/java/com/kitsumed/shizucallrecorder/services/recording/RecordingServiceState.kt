@@ -46,6 +46,12 @@ sealed class RecordingServiceState {
         override val metadata: EnrichedCallData
     ) : RecordingServiceState()
 
+    /** The session is closing; the background worker owns output finalization. */
+    data class Stopping(
+        val session: RecordingSession?,
+        override val metadata: EnrichedCallData?
+    ) : RecordingServiceState()
+
     /**
      * Represents the state when the recording service is actively recording a call.
      * @param session The application-side recording session owner ([RecordingSession]) currently in progress.

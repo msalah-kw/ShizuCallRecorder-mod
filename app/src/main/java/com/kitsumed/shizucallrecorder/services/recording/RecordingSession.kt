@@ -36,7 +36,7 @@ import com.kitsumed.shizucallrecorder.utils.RecordingFileNameFormatter
  * - The resolved recording plan and metadata
  * - The communication with the remote recording engine through IShellService
  *
- * @throws InitializationException when failure happens during the initialization **on the application side** (SAF folder invalid, file creation failed, etc).
+ * @throws InitializationException when file creation or remote capture initialization fails.
  */
 class RecordingSession(
     val context: Service,
@@ -89,6 +89,7 @@ class RecordingSession(
      * The remote shell service, or null if the recording session of this specific instance has been released or canceled.
      */
     private var shellService: IShellService? = remoteService
+    private var stopSucceeded = true
 
     /**
      * The callback implementation for receiving recording events from the remote recording engine.
@@ -96,8 +97,7 @@ class RecordingSession(
     private val recordingCallback = object : IRecordingCallback.Stub() {
         override fun onRecordingFailure(error: RecordingFailure) {
             AppLogger.e("Remote recording engine reported failure with error: $error")
-            // Release resources and notify listener about failure
-            release()
+            // The service schedules cleanup outside the Binder callback thread.
             listener.onSessionFailed(error)
         }
     }
@@ -132,10 +132,17 @@ class RecordingSession(
         outputPfd = safResult.descriptor
 
         try {
-            remoteService.startRecording(outputPfd!!, plan, recordingCallback)
+            if (!remoteService.startRecording(outputPfd!!, plan, recordingCallback)) {
+                shellService = null
+                cancel(context)
+                throw InitializationException(
+                    userFriendlyMessage = context.getString(R.string.recording_failure_capture_start_failed),
+                    technicalLogMessage = "Remote recording engine rejected initialization."
+                )
+            }
             AppLogger.i("Recording session initialized the remote recording engine successfully.")
         } catch (e: RemoteException) {
-            // Since this is a RemoteException, recording never started, so we can delete the file and cleanup.
+            shellService = null
             cancel(context)
             throw InitializationException(
                 userFriendlyMessage = e.localizedMessage ?: context.getString(R.string.recording_error_cannot_reach_binder),
@@ -163,22 +170,31 @@ class RecordingSession(
      * Releases the recording session, stopping the recording and closing resources.
      *
      * **This method should be called when the recording session is no longer needed.**
+     * @return true only if remote finalization and local descriptor cleanup succeeded.
      */
-    fun release() {
-        runCatching {
-            shellService?.stopRecording()
-        }
+    @Synchronized
+    fun release(): Boolean {
+        if (shellService == null && outputPfd == null) return stopSucceeded
+        val finalized = runCatching {
+            shellService?.stopRecording() != false
+        }.onFailure {
+            AppLogger.w("Failed to stop the remote recording session.", it)
+        }.getOrDefault(false)
 
         /*
          * The ShellRecordingEngine closes the FD after finalization.
          * Closing again here is safe as a fallback.
          */
-        runCatching {
+        val closed = runCatching {
             outputPfd?.close()
-        }
+        }.onFailure {
+            AppLogger.w("Failed to close the application recording descriptor.", it)
+        }.isSuccess
 
         shellService = null
         outputPfd = null
+        stopSucceeded = finalized && closed
+        return stopSucceeded
     }
 
     /**

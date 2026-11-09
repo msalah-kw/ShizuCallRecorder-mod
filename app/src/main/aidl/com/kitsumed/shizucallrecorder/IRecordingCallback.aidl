@@ -12,7 +12,7 @@ interface IRecordingCallback {
      * This callback is associated with the recording session that supplied it
      * to startRecording().
      */
-    void onRecordingFailure(
+    oneway void onRecordingFailure(
         in RecordingFailure error
     );
 }

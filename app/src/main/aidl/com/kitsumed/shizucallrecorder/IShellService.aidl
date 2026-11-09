@@ -29,8 +29,9 @@ interface IShellService {
      * @param outputFile The writable descriptor for the recording file.
      * @param plan The recording configuration.
      * @param callback The callback interface for recording events.
+     * @return True only after capture and encoding have started; false after initialization failure.
      */
-    void startRecording(
+    boolean startRecording(
         in ParcelFileDescriptor outputFile,
         in RecordingPlan plan,
         in IRecordingCallback callback
@@ -38,8 +39,9 @@ interface IShellService {
 
     /**
      * Stops the active recording session and finalizes the output.
+     * @return False if output finalization failed or the encoding thread did not exit in time.
     */
-    void stopRecording() = 3;
+    boolean stopRecording() = 3;
 
     /**
      * Pauses the active recording session.

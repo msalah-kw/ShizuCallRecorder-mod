@@ -187,4 +187,7 @@
     <string name="a11y_overlay_action_pause">إيقاف التسجيل مؤقتاً</string>
     <string name="a11y_overlay_recording_stopped">جاهز للتسجيل</string>
     <string name="a11y_overlay_action_start">بدء التسجيل</string>
+    <string name="recording_error_contacts_unavailable">تم تجاوز التسجيل التلقائي لتعذّر التحقق من جهات الاتصال المستثناة. تحقّق من إذن جهات الاتصال وحاول مجددًا.</string>
+    <string name="recording_notification_saving">جارٍ حفظ التسجيل…</string>
+    <string name="recording_error_save_failed">تعذّر حفظ التسجيل بالكامل. قد يكون الملف الصوتي غير مكتمل.</string>
 </resources>

@@ -335,4 +335,7 @@
     <string name="recording_shizuku_not_started">Shizuku-Server process is stopped. Please start Shizuku and ensure it is always able to run when the app wants to record audio.</string>
     <string name="recording_shizuku_permission_denied">Please allow the application to use Shizuku. Permission was denied.</string>
     <string name="recording_shizuku_auth_key_missing">Shizuku Intents authentication key is missing. Please enter it in the app settings.</string>
+    <string name="recording_error_contacts_unavailable">Automatic recording was skipped because contact exclusions could not be checked. Check contact permissions and try again.</string>
+    <string name="recording_notification_saving">Saving recording…</string>
+    <string name="recording_error_save_failed">The recording could not be saved completely. The audio file may be incomplete.</string>
 </resources>
