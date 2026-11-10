@@ -22,6 +22,8 @@ concurrency:
 jobs:
   # Build job
   build:
+    # Forks must configure Pages before opting into a manual deployment.
+    if: github.repository == 'kitsumed/ShizuCallRecorder' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     # Restrict permission to read content only
     permissions:
