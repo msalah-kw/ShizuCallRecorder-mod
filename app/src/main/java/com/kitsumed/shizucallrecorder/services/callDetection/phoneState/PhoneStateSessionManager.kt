@@ -13,6 +13,7 @@ import android.telephony.TelephonyManager
 import com.kitsumed.shizucallrecorder.data.AppPreferences
 import com.kitsumed.shizucallrecorder.data.call.CallDirection
 import com.kitsumed.shizucallrecorder.data.call.RawCallData
+import com.kitsumed.shizucallrecorder.services.callDetection.CallSessionGate
 import com.kitsumed.shizucallrecorder.services.RecordingDecisionEngine
 import com.kitsumed.shizucallrecorder.services.recording.RecordingForegroundService
 import com.kitsumed.shizucallrecorder.system.audio.AudioModeResolver
@@ -40,6 +41,8 @@ class PhoneStateSessionManager private constructor(context: Context) {
         // Singleton instance management
         @Volatile
         private var INSTANCE: PhoneStateSessionManager? = null
+
+        fun stopTrackingIfInitialized() { INSTANCE?.stopTracking() }
 
         /**
          * Provides a thread-safe singleton instance of [PhoneStateSessionManager].
@@ -155,6 +158,16 @@ class PhoneStateSessionManager private constructor(context: Context) {
 
     // Public API
 
+    @Synchronized
+    private fun stopTracking() {
+        sessionJob?.cancel()
+        sessionJob = null
+        if (CallSessionGate.release(this) && session.wasRecordingServiceStartIntentSend) {
+            RecordingDecisionEngine.getInstance(appContext).endRecordingSession()
+        }
+        session.clear()
+    }
+
     /**
      * Handles incoming telephony state changes to manage the recording session lifecycle.
      *
@@ -195,7 +208,7 @@ class PhoneStateSessionManager private constructor(context: Context) {
             // Only trigger stop logic if we were previously in an active session. Prevents redundant stop commands on possible repeated IDLE broadcasts.
             if (session.isSessionActive) {
                 AppLogger.d( "Phone state is now idle (call ended). Sending ending recording service...")
-                RecordingDecisionEngine.getInstance(appContext).endRecordingSession()
+                if (CallSessionGate.release(this)) RecordingDecisionEngine.getInstance(appContext).endRecordingSession()
                 session.clear()
             }
             return
@@ -263,6 +276,8 @@ class PhoneStateSessionManager private constructor(context: Context) {
                 val updatedMetadata = currentMetadata.copy(
                     isCallAudioVoIpBased = audioModeResolver.isVoipAudioModeWithRetry()
                 )
+
+                if (!CallSessionGate.acquire(this@PhoneStateSessionManager)) return@withContext
 
                 // Execute pipeline asynchronously; only lock the state if it actually succeeded
                 val pipelineTriggered = RecordingDecisionEngine.getInstance(appContext).executeDecisionPipeline(updatedMetadata)

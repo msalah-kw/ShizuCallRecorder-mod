@@ -60,7 +60,7 @@ class AudioModeResolver(val context: Context) {
      * @return true if the current audio mode is a VoIP audio mode, false otherwise.
      */
 
-    private fun isVoipAudioMode(): Boolean {
+    fun isVoipAudioMode(): Boolean {
         val mode = audioManager.mode
 
         // Docs at https://developer.android.com/reference/android/media/AudioManager

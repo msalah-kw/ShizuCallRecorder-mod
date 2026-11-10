@@ -190,4 +190,17 @@
     <string name="recording_error_contacts_unavailable">تم تجاوز التسجيل التلقائي لتعذّر التحقق من جهات الاتصال المستثناة. تحقّق من إذن جهات الاتصال وحاول مجددًا.</string>
     <string name="recording_notification_saving">جارٍ حفظ التسجيل…</string>
     <string name="recording_error_save_failed">تعذّر حفظ التسجيل بالكامل. قد يكون الملف الصوتي غير مكتمل.</string>
+    <string name="general_unknown_direction">اتجاه غير معروف</string>
+    <string name="voip_playback_disabled">فعّل السماح بالتقاط الصوت عبر Playback API في إعدادات الصوت لتسجيل مكالمات الإنترنت.</string>
+    <string name="voip_title">توافق مكالمات الإنترنت</string>
+    <string name="voip_checking">جارٍ فحص صلاحيات التقاط الصوت…</string>
+    <string name="voip_unsupported">التقاط صوت الطرف الآخر يتطلب أندرويد 14 أو أحدث.</string>
+    <string name="voip_shizuku_required">شغّل شيزوكو وامنح التطبيق الإذن، ثم أعد الفحص.</string>
+    <string name="voip_permissions_missing">بعض صلاحيات التقاط الصوت غير متاحة على هذا الجهاز:</string>
+    <string name="voip_prerequisites_met">صلاحيات التقاط الصوت متاحة. تأكد من صوت الطرفين بمكالمة تجريبية على هذا الجهاز.</string>
+    <string name="voip_refresh">إعادة الفحص</string>
+    <string name="voip_notification_fallback">كشف احتياطي لمكالمات واتساب وماسنجر</string>
+    <string name="voip_notification_fallback_desc">اختياري. فعّل أيضًا تسجيل مكالمات التطبيقات الأخرى، ثم امنح الوصول للإشعارات بالأسفل. يعتمد على بيانات إشعار المكالمة ووضع صوت الاتصال، ولا يقرأ نص الرسائل. الاتجاه غير المعروف يتطلب تفعيل التسجيل التلقائي للوارد والصادر معًا. استثناءات جهات الاتصال تُبقي المكالمات مجهولة الهوية في وضع الاستعداد.</string>
+    <string name="voip_notification_access">السماح بالوصول للإشعارات</string>
+    <string name="voip_device_test">اختبر الوارد والصادر والشاشة مقفلة، مع سماعة الهاتف ومكبر الصوت والبلوتوث. على HONOR اسمح بالتشغيل في الخلفية وألغِ تحسين البطارية. قيود الجهاز أو تطبيق المكالمات قد تمنع التقاط صوت الطرف الآخر.</string>
 </resources>

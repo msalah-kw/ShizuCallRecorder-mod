@@ -338,4 +338,17 @@
     <string name="recording_error_contacts_unavailable">Automatic recording was skipped because contact exclusions could not be checked. Check contact permissions and try again.</string>
     <string name="recording_notification_saving">Saving recording…</string>
     <string name="recording_error_save_failed">The recording could not be saved completely. The audio file may be incomplete.</string>
+    <string name="general_unknown_direction">Unknown direction</string>
+    <string name="voip_playback_disabled">Enable Allow capture via the Playback API in Audio settings for VoIP capture.</string>
+    <string name="voip_title">VoIP compatibility</string>
+    <string name="voip_checking">Checking capture permissions…</string>
+    <string name="voip_unsupported">Playback capture requires Android 14 or newer.</string>
+    <string name="voip_shizuku_required">Start Shizuku and grant access, then refresh this check.</string>
+    <string name="voip_permissions_missing">Some capture permissions are missing on this device:</string>
+    <string name="voip_prerequisites_met">Capture permission checks passed. Both sides still require a test call on this device.</string>
+    <string name="voip_refresh">Check again</string>
+    <string name="voip_notification_fallback">WhatsApp / Messenger notification fallback</string>
+    <string name="voip_notification_fallback_desc">Optional. Enable third-party call recording too, then allow notification access below. Uses call notification metadata and communication audio mode; message text is never read. Unknown direction requires both incoming and outgoing auto-record enabled. Contact exclusions keep unidentified calls in standby.</string>
+    <string name="voip_notification_access">Allow notification access</string>
+    <string name="voip_device_test">Test incoming and outgoing calls with screen locked, earpiece, speaker, and Bluetooth. On HONOR, allow background activity and disable battery optimization. App and device restrictions can prevent capturing the other side.</string>
 </resources>

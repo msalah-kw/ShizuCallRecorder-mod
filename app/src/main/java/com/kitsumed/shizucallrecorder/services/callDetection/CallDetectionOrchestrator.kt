@@ -12,6 +12,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 import com.kitsumed.shizucallrecorder.data.AppPreferences
+import com.kitsumed.shizucallrecorder.services.callDetection.phoneState.PhoneStateSessionManager
 import com.kitsumed.shizucallrecorder.utils.AppLogger
 
 /**
@@ -29,6 +30,7 @@ class CallDetectionOrchestrator(private val context: Context) {
      */
     fun syncComponents() {
         val activeMode = prefs.getCallDetectionMode()
+        if (activeMode != CallDetectionMode.PhoneState) PhoneStateSessionManager.stopTrackingIfInitialized()
         AppLogger.i( "Synchronizing components. Active mode chosen: ${activeMode.name}")
 
         CallDetectionMode.entries.forEach { mode ->

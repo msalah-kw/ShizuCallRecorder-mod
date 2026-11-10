@@ -1,6 +1,8 @@
 [Go back to the home documentation page](./SUPPORT.md)
 # Configuration Guide
 
+For this fork's beta 2 VoIP detection and diagnostics, see [beta 2 setup](./beta-2.md).
+
 >[!NOTE]  
 > This guide assumes you have met all [requirements](https://github.com/kitsumed/ShizuCallRecorder#requirements) and installed all the mentioned third-party applications.  
 > This guide also assumes you have read the [disclaimer](https://github.com/kitsumed/ShizuCallRecorder#disclaimer) and are following the law.

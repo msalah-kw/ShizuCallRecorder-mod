@@ -12,7 +12,7 @@ import android.telephony.TelephonyManager
 import com.kitsumed.shizucallrecorder.R
 
 /**
- * Enum that clearly indicates whether a call is incoming or outgoing.
+ * Call direction, including sources that cannot reliably determine it.
  *
  * @param token The string token used when sending the direction as Intent extras.
  * @param labelResId The string resource ID for the human-readable label of this direction (e.g. "Incoming" or "Outgoing").
@@ -22,7 +22,10 @@ enum class CallDirection(val token: String, val labelResId: Int) {
     INCOMING("incoming", R.string.general_incoming),
 
     /** The call was placed from the device (we called someone). */
-    OUTGOING("outgoing" , R.string.general_outgoing);
+    OUTGOING("outgoing" , R.string.general_outgoing),
+
+    /** The detection source cannot reliably infer call direction. */
+    UNKNOWN("unknown", R.string.general_unknown_direction);
 
     companion object {
         /**

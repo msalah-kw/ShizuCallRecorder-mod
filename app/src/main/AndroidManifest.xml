@@ -88,6 +88,16 @@
             </intent-filter>
         </service>
 
+        <service
+            android:name=".services.callDetection.notifications.CallNotificationListener"
+            android:label="@string/voip_notification_fallback"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <!-- Support different languages on Android 11 and 12 https://developer.android.com/guide/topics/resources/app-languages#api-implementation:~:text=Support%20Android%2012%20and%20lower -->
         <service
             android:name="androidx.appcompat.app.AppLocalesMetadataHolderService"

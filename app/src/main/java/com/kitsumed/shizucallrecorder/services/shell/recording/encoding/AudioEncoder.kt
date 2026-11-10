@@ -40,9 +40,14 @@ class AudioEncoder(
         private const val CODEC_STALL_TIMEOUT_NS = 2_000_000_000L
     }
 
-    private val mediaCodec = MediaCodec.createEncoderByType(codec.mimeType)
+    private val mediaCodec = createValidatedCodec()
 
-    private val mediaMuxer = MediaMuxer(outputFileDescriptor, codec.outputFormat)
+    private val mediaMuxer = try {
+        MediaMuxer(outputFileDescriptor, codec.outputFormat)
+    } catch (failure: Throwable) {
+        runCatching { mediaCodec.release() }.onFailure { failure.addSuppressed(it) }
+        throw failure
+    }
 
     private val bufferInfo = MediaCodec.BufferInfo()
 
@@ -53,7 +58,7 @@ class AudioEncoder(
     private var released = false
     private var releaseSucceeded = true
 
-    init {
+    private fun createValidatedCodec(): MediaCodec {
         if (channelCount == 2 && codec.minStereoBitRate != null && bitrate < codec.minStereoBitRate) {
             // In my tests is the minimum, internally the encoder behave weirdly, make two channel of "mono" audio, silence one, saturate, etc.
             // The mediaCodec and mediaMuxer will not throw any error, and will tell you everything is fine with two channels, but it will NOT.
@@ -63,6 +68,19 @@ class AudioEncoder(
             throw IllegalArgumentException("Codec '${codec.name}' only supports stereo audio. Mono audio is not supported.")
         }
 
+        return MediaCodec.createEncoderByType(codec.mimeType)
+    }
+
+    init {
+        try {
+            configureAndStart()
+        } catch (failure: Throwable) {
+            release()
+            throw failure
+        }
+    }
+
+    private fun configureAndStart() {
         val format = MediaFormat.createAudioFormat(
                 codec.mimeType,
                 AudioConfig.SAMPLE_RATE,

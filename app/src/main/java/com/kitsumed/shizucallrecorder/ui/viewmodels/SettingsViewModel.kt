@@ -76,6 +76,7 @@ interface SettingsActions {
     fun setShizukuAuthKey(key: String)
     fun setFileNameTemplate(template: String)
     fun setCallDetectionMode(mode: CallDetectionMode)
+    fun setNotificationCallFallback(enabled: Boolean)
     fun setRecordThirdPartyCalls(enabled: Boolean)
     fun setPostRecordingFileNotification(enabled: Boolean)
     fun setOverlayEnabled(enabled: Boolean)
@@ -426,9 +427,13 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         refresh()
     }
 
-    /**
-     * Enables or disables recording of third-party calls (e.g. WhatsApp, Telegram).
-     */
+    /** Enables or disables the optional notification detection fallback. */
+    override fun setNotificationCallFallback(enabled: Boolean) {
+        preferences.setNotificationCallFallbackEnabled(enabled)
+        refresh()
+    }
+
+    /** Enables or disables recording of third-party calls (e.g. WhatsApp, Telegram). */
     override fun setRecordThirdPartyCalls(enabled: Boolean) {
         preferences.setRecordThirdPartyCallsEnabled(enabled)
         refresh()

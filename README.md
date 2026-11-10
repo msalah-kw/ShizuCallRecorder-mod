@@ -14,7 +14,7 @@ The first **non-root FOSS call recorder app for Android 11+**! ShizuCallRecorder
 > **Official Resources:** [Troubleshooting Guide](https://kitsumed.github.io/ShizuCallRecorder/troubleshooting) | [Project Creation History](https://kitsumed.github.io/ShizuCallRecorder/introduction)
 
 
-**This app main focus are Cellular/VoLTE calls, however, we do attempt to support Wifi-Calling and VoIP when possible**. Third-party app support ***is not guaranteed***, they may work provided they use Android Telecom.
+**This app main focus are Cellular/VoLTE calls, however, we do attempt to support Wifi-Calling and VoIP when possible**. Third-party app support ***is not guaranteed***. In this fork, beta 2 adds an optional WhatsApp / WhatsApp Business / Messenger notification fallback for calls missing from Android Telecom. See [beta 2 setup and device testing](docs/beta-2.md).
 
 ## Features
 
@@ -30,7 +30,7 @@ The first **non-root FOSS call recorder app for Android 11+**! ShizuCallRecorder
     - Ignore specific contacts
     - Ignore all contacts
 - Multiple codecs available: **Opus**, **AAC**, **HE-AAC-v1**, and more!
-- The app runs only on phone event changes, no persistent background process and notifications
+- Default call detection runs on phone events. The optional notification fallback uses an Android notification listener and monitors audio mode while a candidate call notification is present.
 
 ## Requirements
 - **Android 12** or more recent*.

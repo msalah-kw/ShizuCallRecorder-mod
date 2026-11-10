@@ -101,6 +101,31 @@ class RecordingDecisionEngineTest {
         preferences.setIgnoredContactsOutgoing(excluded)
     }
 
+    @Test
+    fun unidentifiedVoip_keepsContactExclusionsAndUnknownDirectionPolicy() {
+        preferences.setIgnoreAnonymousIncomingEnabled(false)
+        configureFilter(AppPreferences.IgnoreContactsMode.NONE, emptySet())
+        fun voipDecision(): String? {
+            runBlocking {
+                RecordingDecisionEngine.getInstance(application).executeDecisionPipeline(
+                    RawCallData("", CallDirection.UNKNOWN, packageName = "com.whatsapp", isCallAudioVoIpBased = true)
+                )
+            }
+            return shadowOf(application).nextStartedService.action
+        }
+        assertEquals(RecordingForegroundService.ACTION_START_RECORDING, voipDecision())
+        preferences.setAutoRecordIncomingEnabled(false)
+        assertEquals(RecordingForegroundService.ACTION_STANDBY, voipDecision())
+        preferences.setAutoRecordIncomingEnabled(true)
+        preferences.setAutoRecordOutgoingEnabled(false)
+        assertEquals(RecordingForegroundService.ACTION_STANDBY, voipDecision())
+        preferences.setAutoRecordOutgoingEnabled(true)
+        configureFilter(AppPreferences.IgnoreContactsMode.SELECTED, setOf("excluded"))
+        assertEquals(RecordingForegroundService.ACTION_STANDBY, voipDecision())
+        configureFilter(AppPreferences.IgnoreContactsMode.SELECTED, emptySet())
+        assertEquals(RecordingForegroundService.ACTION_START_RECORDING, voipDecision())
+    }
+
     private fun decision(direction: CallDirection): String? {
         runBlocking {
             RecordingDecisionEngine.getInstance(application).executeDecisionPipeline(

@@ -81,6 +81,7 @@ object RecordingFileNameFormatter {
         val directionStr = when (metadata.direction) {
             CallDirection.INCOMING -> "in"
             CallDirection.OUTGOING -> "out"
+            CallDirection.UNKNOWN -> "unknown"
         }
 
         val phoneStr = sanitizeFileNamePart(metadata.getBestNumber())

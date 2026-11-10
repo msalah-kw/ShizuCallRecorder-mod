@@ -21,6 +21,7 @@ import com.kitsumed.shizucallrecorder.data.AppPreferences
 import com.kitsumed.shizucallrecorder.integrations.shizuku.ShizukuConnectionManager
 import com.kitsumed.shizucallrecorder.onboarding.OnboardingStatus
 import com.kitsumed.shizucallrecorder.services.callDetection.CallDetectionMode
+import com.kitsumed.shizucallrecorder.services.callDetection.CallDetectionOrchestrator
 import com.kitsumed.shizucallrecorder.system.openAppSettings
 import com.kitsumed.shizucallrecorder.system.openShizukuManager
 import com.kitsumed.shizucallrecorder.system.permissions.AppPermission
@@ -105,7 +106,7 @@ class PermissionsViewModel(application: Application) : AndroidViewModel(applicat
             status.callDetectionModeGrantedPermissions.contains(currentPermission)
         }
 
-        when (val nextToRequest = missingPermissions.first()) {
+        when (val nextToRequest = missingPermissions.firstOrNull() ?: run { onPermissionGranted(); return }) {
             is AppPermission.Runtime -> {
                 requestRuntimePermission(nextToRequest.manifestString)
             }
@@ -136,6 +137,7 @@ class PermissionsViewModel(application: Application) : AndroidViewModel(applicat
      */
     fun onCallDetectionModeChanged(newMode: CallDetectionMode) {
         preferences.setCallDetectionMode(newMode)
+        CallDetectionOrchestrator(appContext).syncComponents()
     }
 
     /**

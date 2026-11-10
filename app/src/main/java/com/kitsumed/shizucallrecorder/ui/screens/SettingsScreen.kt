@@ -211,6 +211,7 @@ fun SettingsContent(
                     onOpenContactsOutgoing = onOpenContactsOutgoing
                 )
             }
+            item { VoipCompatibilitySection(preferences, updateTrigger, actions) }
             item { AudioSection(preferences, updateTrigger, actions) }
             item { SecuritySection(preferences, updateTrigger, actions) }
             item { VisualSection(preferences, updateTrigger, actions) }
@@ -1275,7 +1276,8 @@ private fun SettingsScreenPreview() {
             override fun setShizukuAuthKey(key: String) {}
             override fun setFileNameTemplate(template: String) {}
             override fun setCallDetectionMode(mode: CallDetectionMode) {}
-            override fun setRecordThirdPartyCalls(enabled: Boolean) {}
+            override fun setNotificationCallFallback(enabled: Boolean) {}
+        override fun setRecordThirdPartyCalls(enabled: Boolean) {}
             override fun setPostRecordingFileNotification(enabled: Boolean) {}
             override fun setOverlayEnabled(enabled: Boolean) {}
             override fun setPlaybackCaptureAllowed(enabled: Boolean) {}

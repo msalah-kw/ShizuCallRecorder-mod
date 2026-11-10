@@ -24,6 +24,8 @@ import com.kitsumed.shizucallrecorder.utils.AppLogger
 import com.kitsumed.shizucallrecorder.utils.PhoneNumberManager
 import com.kitsumed.shizucallrecorder.utils.SponsorNotificationHelper
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.coroutines.coroutineContext
+import kotlinx.coroutines.ensureActive
 
 /**
  * RecordingDecisionEngine is responsible for making autonomous decisions about call recording.
@@ -86,10 +88,22 @@ class RecordingDecisionEngine private constructor(context: Context) {
         AppLogger.d( "Enriched call data: BestNumber=${enrichedData.getBestNumber()}, crossCountry=${enrichedData.isCrossCountry}")
 
         // Step 2: Evaluate recording decision
-        val shouldAutoRecord = shouldAutoRecord(enrichedData)
+        val identityUnavailable = rawData.isCallAudioVoIpBased && rawData.rawPhoneNumber.isBlank()
+        val incomingExclusions = hasContactExclusions(appPreferences.getIgnoreContactsModeIncoming(), appPreferences.getIgnoredContactsIncoming())
+        val outgoingExclusions = hasContactExclusions(appPreferences.getIgnoreContactsModeOutgoing(), appPreferences.getIgnoredContactsOutgoing())
+        val hasContactExclusions = when (rawData.direction) {
+            CallDirection.INCOMING -> incomingExclusions
+            CallDirection.OUTGOING -> outgoingExclusions
+            CallDirection.UNKNOWN -> incomingExclusions || outgoingExclusions
+        }
+        val shouldAutoRecord = if (identityUnavailable && hasContactExclusions) {
+            skipRecordingForUnavailableContacts()
+            false
+        } else shouldAutoRecord(enrichedData)
         AppLogger.i( "Recording decision for ${enrichedData.direction} call is: shouldAutoRecord=$shouldAutoRecord")
 
         // Step 3: Fire appropriate Intent
+        coroutineContext.ensureActive()
         return fireRecordingServiceIntent(enrichedData, shouldAutoRecord)
     }
 
@@ -124,6 +138,8 @@ class RecordingDecisionEngine private constructor(context: Context) {
         return when (metadata.direction) {
             CallDirection.INCOMING -> evaluateIncomingCall(metadata, metadata.normalisedPhoneNumber, isAnonymous)
             CallDirection.OUTGOING -> evaluateOutgoingCall(metadata, metadata.normalisedPhoneNumber)
+            CallDirection.UNKNOWN -> evaluateIncomingCall(metadata, metadata.normalisedPhoneNumber, isAnonymous) &&
+                evaluateOutgoingCall(metadata, metadata.normalisedPhoneNumber)
         }
     }
 
@@ -219,8 +235,7 @@ class RecordingDecisionEngine private constructor(context: Context) {
         mode: AppPreferences.IgnoreContactsMode,
         ignoredContactsLookupId: Set<String>
     ): Boolean {
-        if (mode == AppPreferences.IgnoreContactsMode.NONE ||
-            (mode == AppPreferences.IgnoreContactsMode.SELECTED && ignoredContactsLookupId.isEmpty())) {
+        if (!hasContactExclusions(mode, ignoredContactsLookupId)) {
             return false
         }
 
@@ -283,6 +298,10 @@ class RecordingDecisionEngine private constructor(context: Context) {
             return skipRecordingForUnavailableContacts()
         }
     }
+
+    private fun hasContactExclusions(mode: AppPreferences.IgnoreContactsMode, selected: Set<String>): Boolean =
+        mode == AppPreferences.IgnoreContactsMode.ALL ||
+            (mode == AppPreferences.IgnoreContactsMode.SELECTED && selected.isNotEmpty())
 
     private fun skipRecordingForUnavailableContacts(): Boolean {
         AppLogger.w("Cannot verify contact exclusions; keeping this call in standby.")

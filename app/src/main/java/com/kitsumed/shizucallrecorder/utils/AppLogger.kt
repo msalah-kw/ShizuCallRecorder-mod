@@ -283,6 +283,13 @@ object AppLogger {
                 writer.println("Device Country Iso Estimation: ${PhoneNumberManager.getInstance(context).getDeviceCountryIso()}")
                 writer.println("Log Redaction Disabled / Debug Mode : ${prefs.isDebugEnabled()}")
                 writer.println("Call Detection Method: ${prefs.getCallDetectionMode().key}")
+                writer.println("Notification fallback enabled: ${prefs.isNotificationCallFallbackEnabled()}")
+                writer.println("Notification access: ${context.packageName in androidx.core.app.NotificationManagerCompat.getEnabledListenerPackages(context)}")
+                val compatibility = com.kitsumed.shizucallrecorder.system.audio.VoipCompatibility.inspect()
+                writer.println("VoIP prerequisites: $compatibility")
+                val audio = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+                writer.println("Audio mode: ${audio.mode}")
+                writer.println("Audio output types: ${audio.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS).map { it.type }}")
                 writer.println()
                 writer.println("=== Call Detection Method Permissions List ===")
                 prefs.getCallDetectionMode().requiredPermissions.forEach { permission ->
