@@ -61,6 +61,7 @@ fun M3DropdownField(
             value         = selected.label,
             onValueChange = {},
             readOnly      = true,
+            shape = MaterialTheme.shapes.medium,
             label         = { Text(label) },
             isError = isError,
             trailingIcon  = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },

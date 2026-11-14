@@ -77,7 +77,7 @@ fun RecordingOverlay(
         targetValue = if (isActivelyRecording)
             MaterialTheme.colorScheme.errorContainer
         else if (isActivelyPaused)
-            Color.Green.copy(alpha = 0.4f)
+            MaterialTheme.colorScheme.secondaryContainer
         else
             MaterialTheme.colorScheme.primaryContainer,
         animationSpec = tween(durationMillis = 400),
@@ -97,10 +97,10 @@ fun RecordingOverlay(
 
     Surface(
         modifier = Modifier
-            .clip(RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)),
+            .clip(RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp)),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         tonalElevation = 6.dp,
-        shadowElevation = 8.dp
+        shadowElevation = 4.dp
     ) {
         Row(
             modifier = Modifier
@@ -134,7 +134,7 @@ fun RecordingOverlay(
                     modifier = Modifier
                         .size(64.dp)
                         .border(
-                            width = 4.dp,
+                            width = 2.dp,
                             color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                             shape = CircleShape
                         )
@@ -163,7 +163,7 @@ fun RecordingOverlay(
                                 MaterialTheme.colorScheme.onErrorContainer
                             else
                                 MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.size(42.dp)
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                 }
@@ -176,7 +176,7 @@ fun RecordingOverlay(
                             .align(Alignment.TopEnd)
                             .alpha(dotAlpha)
                             .background(
-                                color = Color.Red,
+                                color = MaterialTheme.colorScheme.error,
                                 shape = CircleShape
                             )
                     )
@@ -194,7 +194,7 @@ fun RecordingOverlay(
                     painter = painterResource(id = R.drawable.ic_outline_drag_indicator),
                     contentDescription = stringResource(R.string.a11y_overlay_drag_handle),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(42.dp)
+                    modifier = Modifier.size(32.dp)
                 )
             }
         }

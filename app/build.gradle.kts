@@ -66,8 +66,8 @@ android {
         targetSdk = 37
         // Keep theses two values hard-coded here and update them per version. (To keep F-Droid compatibility since their parser is very basic)
         // Shizuku also uses versionCode to replace cached services after the IPC contract changes.
-        versionCode = 22
-        versionName = "2.0.1-beta.2"
+        versionCode = 23
+        versionName = "2.0.2-ui.1"
     }
     signingConfigs {
         // Signing config for CI environments.
@@ -186,6 +186,7 @@ aboutLibraries {
 dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.compose.ui.test.junit4)
     // AndroidX Core & Lifecycle
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.documentfile)

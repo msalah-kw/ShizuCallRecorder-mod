@@ -8,19 +8,13 @@
 
 package com.kitsumed.shizucallrecorder.ui.screens
 
+import com.kitsumed.shizucallrecorder.ui.common.RecorderPageHeader
+import androidx.compose.foundation.BorderStroke
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -41,7 +35,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -283,13 +276,12 @@ fun PermissionsScreen(
 }
 
 /**
- * Stateless visual layer for the permissions checklist screen.
- *
- * Renders a scrollable list of [PermissionCard] items based on the [OnboardingStatus.Status]
+ * Scrollable setup checklist with a grant action that remains reachable with enlarged text.
  *
  * @param status                 The current "Snapshot" of every permission and setup step.
  * @param onGrantAccessButtonClick Forwarded to [PermissionsViewModel.onGrantAccess] when user taps the button.
- * @param onGrantAccessButtonLongClick Forwarded to [PermissionsViewModel.onGrantAccess] when user long-presses the button.
+ * @param onCallDetectionModeChanged Applies the selected detection method.
+ * @param isProcessingGrantingRequest Disables repeat grants while a request is running.
  * @param modifier
  */
 @Composable
@@ -300,142 +292,79 @@ fun PermissionsContent(
     isProcessingGrantingRequest: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    Surface(
-        modifier = modifier
-            .fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .safeDrawingPadding()
-                .padding(horizontal = 24.dp)
-                .padding(top = 24.dp, bottom = 16.dp)
-        ) {
-            // Header
-            Text(
-                text = stringResource(R.string.permissions_title),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = stringResource(R.string.permissions_intro),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Scrollable permission cards
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                PermissionCard(
-                    label = stringResource(R.string.permission_shizuku_label),
-                    description = stringResource(R.string.permission_shizuku_description),
-                    granted = status.shizukuRunning && status.shizukuPermissionGranted,
-                    statusOverride = when {
-                        !status.shizukuRunning -> stringResource(R.string.permission_shizuku_not_running)
-                        !status.shizukuPermissionGranted -> stringResource(R.string.permissions_status_required)
-                        else -> null
-                    }
-                )
-
-                val globalPermissions = listOf(
-                    Triple(stringResource(R.string.permission_notifications_label), stringResource(R.string.permission_notifications_description), status.notificationsGranted to Icons.Default.QuestionAnswer),
-                    Triple(stringResource(R.string.permission_contacts_label), stringResource(R.string.permission_contacts_description), status.contactsGranted to Icons.Default.RecentActors),
-                    Triple(stringResource(R.string.permission_battery_label), stringResource(R.string.permission_battery_description), status.batteryExempted to Icons.Default.BatterySaver),
-                    Triple(stringResource(R.string.settings_recording_folder_label), stringResource(R.string.permission_storage_description), status.storageSelected to Icons.Default.Folder)
-                )
-
-                // How global permissions
-                globalPermissions.forEach { (label, desc, grantInfo) ->
-                    PermissionCard(
-                        label = label,
-                        description = desc,
-                        granted = grantInfo.first,
-                        iconOverride = grantInfo.second
-                    )
-                }
-
-                HorizontalDivider() // Call detection specific permissions section
-
-                val detectionOptions = CallDetectionMode.entries.map { mode ->
-                    OptionItem(
-                        key = mode.name,
-                        label = stringResource(mode.titleResId),
-                        description = stringResource(mode.descriptionResId),
-                        enabled = mode.isSupportedOnCurrentApi()
-                    )
-                }
-
-                M3DropdownField(
-                    label = stringResource(R.string.settings_call_detection_method),
-                    selected = detectionOptions.find { it.key == status.callDetectionMode.name } ?: detectionOptions.first(),
-                    options = detectionOptions,
-                    onOptionSelected = { selectedItem ->
-                        onCallDetectionModeChanged(CallDetectionMode.valueOf(selectedItem.key))
-                    }
-                )
-
-                AnimatedContent(
-                    targetState = status.callDetectionMode,
-                    transitionSpec = {
-                        val enterTransition = fadeIn(tween(300)) + expandVertically(tween(300))
-                        val exitTransition = fadeOut(tween(250)) + shrinkVertically(tween(250))
-
-                        enterTransition togetherWith exitTransition
-                    },
-                    label = "CallDetectionModeSettingsTransition"
-                ) { selectedCallDetectionMode ->
-                    // Child-Column required so cards don't show on top of each other
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+    val completed = listOf(status.shizukuRunning && status.shizukuPermissionGranted,
+        status.notificationsGranted, status.contactsGranted, status.batteryExempted, status.storageSelected
+    ).count { it } + status.callDetectionMode.requiredPermissions.count { it in status.callDetectionModeGrantedPermissions }
+    val total = 5 + status.callDetectionMode.requiredPermissions.size
+    Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            Column(Modifier.widthIn(max = 720.dp).fillMaxSize().safeDrawingPadding().padding(horizontal = 20.dp)) {
+                Column(
+                    Modifier.weight(1f).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    RecorderPageHeader(stringResource(R.string.permissions_title), stringResource(R.string.permissions_intro))
+                    Surface(
+                        Modifier.fillMaxWidth().padding(vertical = 16.dp),
+                        shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.primaryContainer
                     ) {
-                        // Show the required permissions for the selected call detection mode
-                        selectedCallDetectionMode.requiredPermissions.forEach { currentPermission ->
-                            val isGranted = status.callDetectionModeGrantedPermissions.contains(currentPermission)
-                            PermissionCard(
-                                label = stringResource(currentPermission.titleResId),
-                                description = stringResource(currentPermission.descriptionResId),
-                                granted = isGranted,
-                                iconOverride = currentPermission.icon
+                        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Text(stringResource(R.string.ui_setup_progress, completed, total), style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                            LinearProgressIndicator(
+                                progress = { completed.toFloat() / total }, modifier = Modifier.fillMaxWidth().height(6.dp),
+                                color = MaterialTheme.colorScheme.primary, trackColor = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.12f)
                             )
                         }
                     }
-                }
-
-
-            }
-
-            // Footer with action button
-            Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(modifier = Modifier.padding(bottom = 16.dp))
-
-            Button(
-                onClick = onGrantAccessButtonClick,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = !isProcessingGrantingRequest,
-                shape = MaterialTheme.shapes.medium
-            ) {
-                if (isProcessingGrantingRequest) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Text(
-                        text = when {
-                            status.isComplete()       -> stringResource(R.string.general_continue)
-                            !status.shizukuRunning    -> stringResource(R.string.permission_shizuku_open)
-                            else                      -> stringResource(R.string.permissions_grant_access)
+                    PermissionCard(
+                        label = stringResource(R.string.permission_shizuku_label),
+                        description = stringResource(R.string.permission_shizuku_description),
+                        granted = status.shizukuRunning && status.shizukuPermissionGranted,
+                        statusOverride = when {
+                            !status.shizukuRunning -> stringResource(R.string.permission_shizuku_not_running)
+                            !status.shizukuPermissionGranted -> stringResource(R.string.permissions_status_required)
+                            else -> null
                         }
                     )
+                    val globalPermissions = listOf(
+                        Triple(R.string.permission_notifications_label, R.string.permission_notifications_description, status.notificationsGranted to Icons.Default.QuestionAnswer),
+                        Triple(R.string.permission_contacts_label, R.string.permission_contacts_description, status.contactsGranted to Icons.Default.RecentActors),
+                        Triple(R.string.permission_battery_label, R.string.permission_battery_description, status.batteryExempted to Icons.Default.BatterySaver),
+                        Triple(R.string.settings_recording_folder_label, R.string.permission_storage_description, status.storageSelected to Icons.Default.Folder)
+                    )
+                    globalPermissions.forEach { (label, description, grant) ->
+                        PermissionCard(stringResource(label), stringResource(description), grant.first, iconOverride = grant.second)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    val detectionOptions = CallDetectionMode.entries.map { mode ->
+                        OptionItem(mode.name, stringResource(mode.titleResId), stringResource(mode.descriptionResId), mode.isSupportedOnCurrentApi())
+                    }
+                    M3DropdownField(
+                        label = stringResource(R.string.settings_call_detection_method),
+                        selected = detectionOptions.first { it.key == status.callDetectionMode.name },
+                        options = detectionOptions,
+                        onOptionSelected = { onCallDetectionModeChanged(CallDetectionMode.valueOf(it.key)) }
+                    )
+                    status.callDetectionMode.requiredPermissions.forEach { permission ->
+                        PermissionCard(
+                            stringResource(permission.titleResId), stringResource(permission.descriptionResId),
+                            permission in status.callDetectionModeGrantedPermissions, iconOverride = permission.icon
+                        )
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+                Button(
+                    onClick = onGrantAccessButtonClick,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp).heightIn(min = 56.dp),
+                    enabled = !isProcessingGrantingRequest, shape = MaterialTheme.shapes.medium
+                ) {
+                    if (isProcessingGrantingRequest) {
+                        CircularProgressIndicator(Modifier.size(22.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                    } else Text(stringResource(when {
+                        status.isComplete() -> R.string.general_continue
+                        !status.shizukuRunning -> R.string.permission_shizuku_open
+                        else -> R.string.permissions_grant_access
+                    }))
                 }
             }
         }
@@ -450,62 +379,28 @@ private fun PermissionCard(
     statusOverride: String? = null,
     iconOverride: ImageVector? = null
 ) {
-    // Animate the background container color smoothly
-    val containerColor by animateColorAsState(
-        targetValue = if (granted) {
-            MaterialTheme.colorScheme.surfaceContainerHigh
-        } else {
-            MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.8f)
-        },
-        animationSpec = tween(durationMillis = 500),
-        label = "cardBackgroundColor"
-    )
-
-    // Animate the status/icon color
-    val statusColor by animateColorAsState(
-        targetValue = if (granted) {
-            MaterialTheme.colorScheme.primary
-        } else {
-            MaterialTheme.colorScheme.error
-        },
-        animationSpec = tween(durationMillis = 600),
-        label = "cardStatusColor"
-    )
-
-    ElevatedCard(
-        colors = CardDefaults.elevatedCardColors(containerColor = containerColor),
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
+    val statusColor = if (granted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    OutlinedCard(
+        modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
-        ListItem(
-            colors = ListItemDefaults.colors(containerColor = containerColor),
-            headlineContent = {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(iconOverride ?: Icons.Default.Adb, null, Modifier.size(20.dp))
-                    Text(label, fontWeight = FontWeight.SemiBold)
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    Icon(
-                        imageVector = if (granted) Icons.Default.CheckCircle else Icons.Default.ErrorOutline,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp),
-                        tint = statusColor // Used the animated color here
-                    )
+        Row(Modifier.padding(18.dp), horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.Top) {
+            Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+                Icon(iconOverride ?: Icons.Default.Adb, null, Modifier.padding(12.dp).size(22.dp), tint = statusColor)
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(label, style = MaterialTheme.typography.titleSmall)
+                Text(description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Icon(if (granted) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked, null, Modifier.size(15.dp), tint = statusColor)
                     Text(
-                        text = statusOverride ?: if (granted) stringResource(R.string.permissions_status_granted) else stringResource(R.string.permissions_status_required),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = statusColor, // Used the animated color here
-                        fontWeight = FontWeight.Bold
+                        statusOverride ?: stringResource(if (granted) R.string.permissions_status_granted else R.string.permissions_status_required),
+                        style = MaterialTheme.typography.labelMedium, color = statusColor
                     )
                 }
-            },
-            supportingContent = { Text(description, style = MaterialTheme.typography.bodySmall) },
-        )
+            }
+        }
     }
 }
 

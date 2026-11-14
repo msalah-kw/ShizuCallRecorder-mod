@@ -25,6 +25,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -61,6 +63,7 @@ import com.kitsumed.shizucallrecorder.ui.viewmodels.SettingsViewModel
 @Composable
 fun AppNavigationScreen() {
     val activityContext = LocalContext.current
+    val layoutDirection = LocalLayoutDirection.current
 
     // AppNavigationViewModel - the "Brain" for routing: owns onboarding state.
     val appNavViewModel: AppNavigationViewModel = viewModel()
@@ -119,7 +122,7 @@ fun AppNavigationScreen() {
             transitionSpec = {
                 val movingForward = targetState.ordinal > initialState.ordinal
                 // Slide in from the right when moving forward (1), slide out to the left when moving forward (-1).
-                val slideDirection = if (movingForward) 1 else -1
+                val slideDirection = (if (movingForward) 1 else -1) * (if (layoutDirection == LayoutDirection.Rtl) -1 else 1)
 
                 val enterSpec = slideInHorizontally(tween(350)) { width -> width * slideDirection } + fadeIn(tween(350))
                 val exitSpec = slideOutHorizontally(tween(300)) { width -> -width * slideDirection } + fadeOut(tween(300))

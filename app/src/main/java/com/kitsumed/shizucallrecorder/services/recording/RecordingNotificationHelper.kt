@@ -30,7 +30,7 @@ import com.kitsumed.shizucallrecorder.R
 import com.kitsumed.shizucallrecorder.data.AppPreferences
 import com.kitsumed.shizucallrecorder.data.call.EnrichedCallData
 import com.kitsumed.shizucallrecorder.utils.RecordingFileNameFormatter
-import com.kitsumed.shizucallrecorder.ui.theme.Green40
+import com.kitsumed.shizucallrecorder.ui.theme.Teal
 
 class RecordingNotificationHelper(private val context: Context) {
 
@@ -173,7 +173,7 @@ class RecordingNotificationHelper(private val context: Context) {
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
             .setAutoCancel(false)
             .setOnlyAlertOnce(true)
-            .setColor(Green40.toArgb())
+            .setColor(Teal.toArgb())
             .setColorized(state.isRecordingActive && !state.isRecordingPaused)
             .setSilent(state.isStarting || state.isRecordingActive || state is RecordingServiceState.Stopping)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)

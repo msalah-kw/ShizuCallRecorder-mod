@@ -8,6 +8,8 @@
 
 package com.kitsumed.shizucallrecorder.ui.screens
 
+import com.kitsumed.shizucallrecorder.ui.common.RecorderPageHeader
+import androidx.compose.foundation.layout.heightIn
 import android.content.Context
 import android.view.accessibility.AccessibilityManager
 import androidx.compose.animation.AnimatedContent
@@ -47,6 +49,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -73,7 +76,7 @@ import kotlin.time.Duration.Companion.seconds
  * One-time disclaimer screen shown on first launch.
  *
  * @param onContinue Called when the user presses the enabled "Continue" button. The caller
- *                   ([AppNavigation]) then persists the acceptance flag and triggers a refresh
+ *                   ([com.kitsumed.shizucallrecorder.AppNavigationScreen]) persists acceptance and refreshes
  *                   (recompose) so the router advances to the Permissions screen.
  * @param modifier   Optional size/position modifier forwarded to the root [Surface].
  */
@@ -106,7 +109,7 @@ fun DisclaimerScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
     }
 
     Surface(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
@@ -117,12 +120,7 @@ fun DisclaimerScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Title
-            Text(
-                text = stringResource(R.string.disclaimer_title),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onBackground
-            )
+            RecorderPageHeader(stringResource(R.string.disclaimer_title), stringResource(R.string.ui_welcome_description))
 
             // Introduction paragraph with a hyperlinked "Wiki" keyword
             val links = mapOf(
@@ -197,7 +195,8 @@ fun DisclaimerScreen(onContinue: () -> Unit, modifier: Modifier = Modifier) {
 
             Button(
                 onClick = onContinue,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).testTag("disclaimer-continue"),
+                shape = MaterialTheme.shapes.medium,
                 enabled = canContinue,
             ) {
                 if (timeLeft > 0) {

@@ -11,12 +11,15 @@ package com.kitsumed.shizucallrecorder.ui.screens
 import android.content.Intent
 import android.provider.Settings
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Card
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -30,6 +33,7 @@ import com.kitsumed.shizucallrecorder.R
 import com.kitsumed.shizucallrecorder.data.AppPreferences
 import com.kitsumed.shizucallrecorder.system.audio.VoipCompatibility
 import com.kitsumed.shizucallrecorder.ui.common.ToggleListItem
+import com.kitsumed.shizucallrecorder.ui.common.RecorderSection
 import com.kitsumed.shizucallrecorder.ui.viewmodels.SettingsActions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -52,9 +56,10 @@ internal fun VoipCompatibilitySection(preferences: AppPreferences, updateTrigger
         compatibility = withContext(Dispatchers.IO) { VoipCompatibility.inspect() }
         notificationAccess = context.packageName in NotificationManagerCompat.getEnabledListenerPackages(context)
     }
-    Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-        Column(Modifier.padding(16.dp)) {
-            Text(stringResource(R.string.voip_title), style = MaterialTheme.typography.titleMedium)
+    var showDetails by rememberSaveable { mutableStateOf(false) }
+    var showGuide by rememberSaveable { mutableStateOf(false) }
+    RecorderSection(stringResource(R.string.voip_title)) {
+        Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             val status = compatibility
             Text(stringResource(when {
                 status == null -> R.string.voip_checking
@@ -65,21 +70,35 @@ internal fun VoipCompatibilitySection(preferences: AppPreferences, updateTrigger
                 else -> R.string.voip_prerequisites_met
             }))
             if (status?.missingPermissions?.isNotEmpty() == true) {
-                Text(status.missingPermissions.joinToString("\n") { it.substringAfterLast('.') }, style = MaterialTheme.typography.bodySmall)
-            }
-            OutlinedButton(onClick = { refresh++ }) { Text(stringResource(R.string.voip_refresh)) }
-            ToggleListItem(
-                label = stringResource(R.string.voip_notification_fallback),
-                description = stringResource(R.string.voip_notification_fallback_desc),
-                checked = fallback,
-                onCheckedChange = actions::setNotificationCallFallback
-            )
-            if (fallback && !notificationAccess) {
-                OutlinedButton(onClick = { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }) {
-                    Text(stringResource(R.string.voip_notification_access))
+                TextButton(onClick = { showDetails = !showDetails }) {
+                    Text(stringResource(R.string.ui_diagnostic_details))
+                }
+                if (showDetails) SelectionContainer {
+                    Text(status.missingPermissions.joinToString("\n") { it.substringAfterLast('.') }, style = MaterialTheme.typography.bodySmall)
                 }
             }
-            Text(stringResource(R.string.voip_device_test), style = MaterialTheme.typography.bodySmall)
+            OutlinedButton(onClick = { refresh++ }) { Text(stringResource(R.string.voip_refresh)) }
         }
+        ToggleListItem(
+            label = stringResource(R.string.voip_notification_fallback),
+            description = stringResource(R.string.voip_notification_fallback_desc),
+            checked = fallback,
+            onCheckedChange = actions::setNotificationCallFallback
+        )
+        if (fallback && !notificationAccess) {
+            FilledTonalButton(
+                onClick = { context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) },
+                modifier = Modifier.padding(horizontal = 20.dp)
+            ) {
+                Text(stringResource(R.string.voip_notification_access))
+            }
+        }
+        TextButton(onClick = { showGuide = !showGuide }, modifier = Modifier.padding(horizontal = 10.dp)) {
+            Text(stringResource(R.string.ui_voip_help))
+        }
+        if (showGuide) Text(
+            stringResource(R.string.voip_device_test), style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+        )
     }
 }

@@ -140,7 +140,7 @@
     <string name="permission_storage_description">Select where recordings will be saved.</string>
 
     <string name="permission_shizuku_label" translatable="false">Shizuku</string>
-    <string name="permission_shizuku_description">Required to start the audio recording (ShellService) with scrcpy.</string>
+    <string name="permission_shizuku_description">Provides audio access through Shizuku. Start it and allow this app to connect.</string>
     <string name="permission_shizuku_not_running">Not running</string>
     <string name="permission_shizuku_open">Open Shizuku</string>
 
@@ -232,10 +232,10 @@
     <string name="audio_codec_he_aac_v2" translatable="false">HE-AAC v2</string>
     <string name="audio_codec_xhe_aac" translatable="false">xHE-AAC</string>
     <string name="audio_codec_amr_wb" translatable="false">AMR-WB</string>
-    <string name="settings_audio_allow_playback_api">Allow capture via the Playback API</string>
-    <string name="settings_audio_allow_playback_api_desc">When VoIP or Wi-Fi Calling is detected, overrides the selected uplink/downlink sources with audio playback capture or any other equivalent source to attempt capturing the audio.</string>
-    <string name="settings_audio_channel_split">Split Uplink/Downlink audio</string>
-    <string name="settings_audio_channel_split_desc">Split uplink audio to the left channel, and downlink to right.</string>
+    <string name="settings_audio_allow_playback_api">Allow playback capture</string>
+    <string name="settings_audio_allow_playback_api_desc">Use playback capture for supported VoIP and Wi-Fi calls instead of the selected call sources.</string>
+    <string name="settings_audio_channel_split">Separate both sides</string>
+    <string name="settings_audio_channel_split_desc">Save your voice on the left channel and the other side on the right.</string>
 
     <string name="settings_audio_bitrate">Audio bit rate</string>
     <string name="audio_bitrate_kbps" translatable="false">%1$d kbps</string>
@@ -285,9 +285,9 @@
     <string name="settings_debug_mode">Enable debug mode</string>
     <string name="settings_debug_mode_description">Show developers options, disable log redaction.</string>
     <string name="settings_debug_caller_number">Debug phone number</string>
-    <string name="settings_debug_action_ringing" translatable="false">Ringing</string>
-    <string name="settings_debug_action_offhook" translatable="false">Off Hook</string>
-    <string name="settings_debug_action_idle" translatable="false">Idle / End</string>
+    <string name="settings_debug_action_ringing">Ringing</string>
+    <string name="settings_debug_action_offhook">Connected</string>
+    <string name="settings_debug_action_idle">Idle / End</string>
 
     <!-- Settings Screen: About/Server Section -->
     <string name="settings_view_licenses">View Licenses</string>
@@ -351,4 +351,32 @@
     <string name="voip_notification_fallback_desc">Optional. Enable third-party call recording too, then allow notification access below. Uses call notification metadata and communication audio mode; message text is never read. Unknown direction requires both incoming and outgoing auto-record enabled. Contact exclusions keep unidentified calls in standby.</string>
     <string name="voip_notification_access">Allow notification access</string>
     <string name="voip_device_test">Test incoming and outgoing calls with screen locked, earpiece, speaker, and Bluetooth. On HONOR, allow background activity and disable battery optimization. App and device restrictions can prevent capturing the other side.</string>
+    <string name="ui_nav_home">Home</string>
+    <string name="ui_nav_calls">Calls</string>
+    <string name="ui_nav_audio">Audio</string>
+    <string name="ui_home_title">Your call space</string>
+    <string name="ui_home_description">Recording controls, all in one place.</string>
+    <string name="ui_calls_description">Choose what gets recorded and how calls are detected.</string>
+    <string name="ui_audio_description">Fine-tune capture, format and audio quality.</string>
+    <string name="ui_settings_description">Make it yours. Appearance, Shizuku and app tools.</string>
+    <string name="ui_quick_recording">Automatic recording</string>
+    <string name="ui_incoming_description">Apply your recording rules to incoming calls.</string>
+    <string name="ui_outgoing_description">Apply your recording rules to outgoing calls.</string>
+    <string name="ui_recording_rules">Rules and exclusions</string>
+    <string name="ui_checking">Checking your setup…</string>
+    <string name="ui_ready_title">Ready for supported calls</string>
+    <string name="ui_auto_start_title">Shizuku, when needed</string>
+    <string name="ui_attention_title">Check your connection</string>
+    <string name="ui_ready_description">Your rules control recording on supported calls. Check the saved audio after your first test.</string>
+    <string name="ui_manage_calls">Manage call recording</string>
+    <string name="ui_recordings_folder">Your recordings folder</string>
+    <string name="ui_folder_unavailable">Cannot open this folder. Choose it again in the system picker.</string>
+    <string name="ui_audio_profile">Your audio profile</string>
+    <string name="ui_setup_progress">%1$d of %2$d setup steps complete</string>
+    <string name="ui_welcome_description">A little setup. A clearer experience.</string>
+    <string name="ui_support_description">Help keep independent, open-source development going.</string>
+    <string name="ui_voip_help">Device test guide</string>
+    <string name="ui_diagnostic_details">Capture permission details</string>
+    <string name="ui_incoming_rules">Incoming calls</string>
+    <string name="ui_outgoing_rules">Outgoing calls</string>
 </resources>

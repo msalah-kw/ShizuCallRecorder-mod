@@ -78,7 +78,7 @@ class AppPreferences(context: Context) {
 
         // --- UI & Appearance ---
         val THEME_MODE = ThemeMode.SYSTEM
-        const val DYNAMIC_COLOR = true
+        const val DYNAMIC_COLOR = false
         const val SHOW_TOASTS = true
         const val SHOW_RECORDING_OVERLAY = false
         const val OVERLAY_Y_POSITION = -1

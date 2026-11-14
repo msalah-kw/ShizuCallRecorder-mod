@@ -8,6 +8,8 @@
 
 package com.kitsumed.shizucallrecorder.ui.common
 
+import androidx.compose.foundation.layout.widthIn
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -101,7 +103,7 @@ fun FileNameFormatDialog(
     AlertDialog(
         title = { Text(stringResource(R.string.settings_file_name_template)) },
         properties = DialogProperties(usePlatformDefaultWidth = false),
-        modifier = Modifier.fillMaxWidth(0.90f),
+        modifier = Modifier.widthIn(max = 640.dp).fillMaxWidth(0.94f),
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp),

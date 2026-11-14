@@ -10,27 +10,10 @@ package com.kitsumed.shizucallrecorder.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// --- PRIMARY COLORS ---
-val Green80 = Color(0xFFB4D3A1) // Light Green for Dark Theme
-val Green40 = Color(0xFF386B20) // Deep Green for Light Theme
-
-// --- SECONDARY & TERTIARY ---
-val GreenGrey80 = Color(0xFFC3C9BC)
-val GreenGrey40 = Color(0xFF5B6156)
-val AccentGreen80 = Color(0xFFA1D3BC)
-val AccentGreenDark = Color(0xFF00382B)
-
-// --- TEXT & "ON" COLORS ---
-val DeepDarkGreen = Color(0xFF00390A)   // High contrast for light surfaces
-val VeryDarkForest = Color(0xFF063900)  // Good for labels on light containers
-val DarkGreyGreen = Color(0xFF2D3229)   // Muted text
-val NearBlackText = Color(0xFF1B1C18)   // Universal dark text
-val OffWhiteText = Color(0xFFE3E3DC)    // Light text for dark backgrounds
-val White = Color.White
-
-// --- CONTAINERS & SURFACES ---
-val DarkSurface = Color(0xFF1B1C18)
-val LightSurface = Color(0xFFFDFDF6)
-val GreenContainerDark = Color(0xFF205107)
-val GreenContainerLight = Color(0xFFD0F0BC)
-val GreyGreenOutline = Color(0xFF91938A)
+internal val Ink = Color(0xFF102735)
+internal val Teal = Color(0xFF006B61)
+internal val Mint = Color(0xFF6ADBC6)
+internal val Cloud = Color(0xFFF4F7F9)
+internal val Night = Color(0xFF0B141D)
+internal val HeroStart = Color(0xFF102B3D)
+internal val HeroEnd = Color(0xFF105B54)

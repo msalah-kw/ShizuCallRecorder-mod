@@ -8,6 +8,11 @@
 
 package com.kitsumed.shizucallrecorder.ui.screens
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import com.kitsumed.shizucallrecorder.ui.common.RecorderPageHeader
+import com.kitsumed.shizucallrecorder.ui.common.RecorderSection
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.net.Uri
@@ -33,7 +38,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Warning
@@ -151,7 +156,7 @@ fun SettingsScreen(
 }
 
 /**
- * Stateless visual layer for the Settings screen.
+ * Settings workspace with local, saved navigation state. Preference mutations stay in SettingsActions.
  *
  * @param preferences            The [AppPreferences] instance to read data from.
  * @param updateTrigger          Trigger value to force/detect recomposition when settings change.
@@ -179,44 +184,60 @@ fun SettingsContent(
     onExportLogs: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier
-            .fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize(),
-            // Equivalent to .safeDrawingPadding() but allow UI to extend behind the status bar when scrolling
-            contentPadding = WindowInsets.safeDrawing
-                .add(WindowInsets(left = 20.dp, right = 20.dp, top = 0.dp, bottom = 0.dp))
-                .asPaddingValues(),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
-        ) {
-            item {
-                Text(
-                    text = stringResource(R.string.general_settings),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold
-                )
+    var selected by rememberSaveable { mutableStateOf(RecorderDestination.HOME) }
+    val pageStates = rememberSaveableStateHolder()
+    BackHandler(enabled = selected != RecorderDestination.HOME) { selected = RecorderDestination.HOME }
+    BoxWithConstraints(modifier.fillMaxSize()) {
+        val useRail = maxWidth >= 720.dp && maxHeight >= 560.dp
+        Row(Modifier.fillMaxSize()) {
+            if (useRail) RecorderNavigationRail(selected) { selected = it }
+            Scaffold(
+                modifier = Modifier.weight(1f),
+                containerColor = MaterialTheme.colorScheme.background,
+                bottomBar = { if (!useRail) RecorderBottomBar(selected) { selected = it } },
+                contentWindowInsets = if (useRail) {
+                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Bottom + WindowInsetsSides.End)
+                } else WindowInsets.safeDrawing
+            ) { insets ->
+                Box(Modifier.fillMaxSize().padding(insets).consumeWindowInsets(insets), contentAlignment = Alignment.TopCenter) {
+                    key(selected) {
+                        pageStates.SaveableStateProvider(selected.name) {
+                            LazyColumn(
+                                modifier = Modifier.widthIn(max = 840.dp).fillMaxSize(),
+                                contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 32.dp),
+                                verticalArrangement = Arrangement.spacedBy(24.dp)
+                            ) {
+                                if (selected != RecorderDestination.HOME) {
+                                    item { RecorderPageHeader(stringResource(selected.title), stringResource(selected.description)) }
+                                }
+                                when (selected) {
+                                    RecorderDestination.HOME -> item {
+                                        RecorderDashboard(
+                                            preferences, updateTrigger, actions,
+                                            DashboardShortcuts(
+                                                calls = { selected = RecorderDestination.CALLS },
+                                                audio = { selected = RecorderDestination.AUDIO },
+                                                selectFolder = onSelectFolder
+                                            )
+                                        )
+                                    }
+                                    RecorderDestination.CALLS -> {
+                                        item { RecordingSection(preferences, updateTrigger, actions, onSelectFolder, onOpenContactsIncoming, onOpenContactsOutgoing) }
+                                        item { VoipCompatibilitySection(preferences, updateTrigger, actions) }
+                                    }
+                                    RecorderDestination.AUDIO -> item { AudioSection(preferences, updateTrigger, actions) }
+                                    RecorderDestination.SETTINGS -> {
+                                        item { VisualSection(preferences, updateTrigger, actions) }
+                                        item { SecuritySection(preferences, updateTrigger, actions) }
+                                        item { DebugSection(preferences, updateTrigger, actions, onExportLogs) }
+                                        item { AboutSection(versionString = actions.getAppVersion()) }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            item { AboutSection(versionString = actions.getAppVersion()) }
-            item {
-                RecordingSection(
-                    preferences = preferences,
-                    updateTrigger = updateTrigger,
-                    actions = actions,
-                    onSelectFolder = onSelectFolder,
-                    onOpenContactsIncoming = onOpenContactsIncoming,
-                    onOpenContactsOutgoing = onOpenContactsOutgoing
-                )
-            }
-            item { VoipCompatibilitySection(preferences, updateTrigger, actions) }
-            item { AudioSection(preferences, updateTrigger, actions) }
-            item { SecuritySection(preferences, updateTrigger, actions) }
-            item { VisualSection(preferences, updateTrigger, actions) }
-            item { DebugSection(preferences, updateTrigger, actions, onExportLogs) }
-            item {  } // extra padding at bottom
         }
     }
 
@@ -459,8 +480,8 @@ private fun SecuritySection(preferences: AppPreferences, updateTrigger: Int, act
             enter = fadeIn(animationSpec = tween(durationMillis = 500)) +
                     expandVertically(
                         animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMedium
                         ),
                         expandFrom = Alignment.Top
                     ),
@@ -533,7 +554,7 @@ private fun SecuritySection(preferences: AppPreferences, updateTrigger: Int, act
  * @param updateTrigger          Trigger value to force recomposition when settings change.
  * @param actions                Implementation of [SettingsActions] to handle user interaction.
  * @param onSelectFolder         Called when the user taps the recording-folder row; opens the SAF picker
- *                               whose launcher lives in AppNavigation.
+ *                               whose launcher lives in SettingsScreen.
  * @param onOpenContactsIncoming Called when the user wants to pick incoming contacts to ignore;
  *                               opens the [ContactSelectionDialog] via [ContactPickerViewModel].
  * @param onOpenContactsOutgoing Called when the user wants to pick outgoing contacts to ignore;
@@ -569,196 +590,202 @@ private fun RecordingSection(
 
     var showFileNameFormatDialog by remember { mutableStateOf(false) }
 
-    SettingsSection(title = stringResource(R.string.settings_section_recording)) {
-        val detectionOptions = CallDetectionMode.entries.map { mode ->
-            OptionItem(
-                key = mode.key,
-                label = stringResource(mode.titleResId),
-                description = stringResource(mode.descriptionResId),
-                // Automatically grays out option if the user device's OS API level is incompatible
-                enabled = mode.isSupportedOnCurrentApi()
+    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+        SettingsSection(title = stringResource(R.string.settings_section_recording)) {
+            val detectionOptions = CallDetectionMode.entries.map { mode ->
+                OptionItem(
+                    key = mode.key,
+                    label = stringResource(mode.titleResId),
+                    description = stringResource(mode.descriptionResId),
+                    // Automatically grays out option if the user device's OS API level is incompatible
+                    enabled = mode.isSupportedOnCurrentApi()
+                )
+            }
+
+            M3DropdownField(
+                label = stringResource(R.string.settings_call_detection_method),
+                selected = detectionOptions.find { it.key == callDetectionMode.key } ?: detectionOptions.first(),
+                options = detectionOptions,
+                onOptionSelected = { selectedItem ->
+                    val chosenMode = CallDetectionMode.fromKey(selectedItem.key)
+                    actions.setCallDetectionMode(chosenMode)
+                },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
             )
+
+            AnimatedContent(
+                targetState = callDetectionMode,
+                transitionSpec = {
+                    val enterTransition = fadeIn(tween(300)) + expandVertically(tween(300))
+                    val exitTransition = fadeOut(tween(250)) + shrinkVertically(tween(250))
+
+                    enterTransition togetherWith exitTransition
+                },
+                label = "CallDetectionModeSettingsTransition"
+            ) { targetMode ->
+                when (targetMode) {
+                    CallDetectionMode.InCallService -> {
+                        ToggleListItem(
+                            label           = stringResource(R.string.settings_record_third_party_calls),
+                            description     = stringResource(R.string.settings_record_third_party_calls_description),
+                            checked         = recordThirdPartyCalls,
+                            onCheckedChange = { actions.setRecordThirdPartyCalls(it) }
+                        )
+                    }
+                    CallDetectionMode.PhoneState -> {
+                        WarningCard(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            title = stringResource(R.string.settings_call_detection_method_warning_title),
+                            message = stringResource(R.string.call_detection_mode_phonestate_limited_support)
+                        )
+                    }
+                    //CallDetectionMode.NotificationListener -> {} // TODO: Add comment?
+                }
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), thickness = 0.5.dp)
+
+            ListItem(
+                modifier = Modifier
+                    .clickable { onSelectFolder() }
+                    .semantics(mergeDescendants = true) {},
+                headlineContent = { Text(stringResource(R.string.settings_recording_folder_label)) },
+                supportingContent = {
+                    Text(
+                        text = recordingFolderLabel ?: stringResource(R.string.settings_tap_to_select_folder),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                trailingContent = {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = null
+                    )
+                },
+            )
+
+            ListItem(
+                modifier = Modifier
+                    .clickable { showFileNameFormatDialog = true }
+                    .semantics(mergeDescendants = true) {},
+                headlineContent = { Text(stringResource(R.string.settings_file_name_template)) },
+                supportingContent = {
+                    Text(
+                        text = fileNameFormat,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                },
+                trailingContent = {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = null
+                    )
+                },
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent)
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+
+            ToggleListItem(
+                label = stringResource(R.string.settings_post_recording_notification),
+                description = stringResource(R.string.settings_post_recording_notification_description),
+                checked = postRecordingFileNotifications,
+                onCheckedChange = { actions.setPostRecordingFileNotification(it) }
+            )
+
+            ToggleListItem(
+                label           = stringResource(R.string.settings_vibration_enabled),
+                checked         = isVibrationEnabled,
+                onCheckedChange = { actions.setVibrationEnabled(it) }
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+
         }
-
-        M3DropdownField(
-            label = stringResource(R.string.settings_call_detection_method),
-            selected = detectionOptions.find { it.key == callDetectionMode.key } ?: detectionOptions.first(),
-            options = detectionOptions,
-            onOptionSelected = { selectedItem ->
-                val chosenMode = CallDetectionMode.fromKey(selectedItem.key)
-                actions.setCallDetectionMode(chosenMode)
-            },
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
-        )
-
-        AnimatedContent(
-            targetState = callDetectionMode,
-            transitionSpec = {
-                val enterTransition = fadeIn(tween(300)) + expandVertically(tween(300))
-                val exitTransition = fadeOut(tween(250)) + shrinkVertically(tween(250))
-
-                enterTransition togetherWith exitTransition
-            },
-            label = "CallDetectionModeSettingsTransition"
-        ) { targetMode ->
-            when (targetMode) {
-                CallDetectionMode.InCallService -> {
+        SettingsSection(title = stringResource(R.string.ui_incoming_rules)) {
+            ToggleListItem(
+                label           = stringResource(R.string.settings_auto_record_incoming),
+                checked         = autoRecordIncoming,
+                onCheckedChange = { actions.setAutoRecordIncoming(it) }
+            )
+            AnimatedVisibility(
+                visible = autoRecordIncoming,
+                enter = fadeIn(animationSpec = tween(durationMillis = 500)) +
+                        expandVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            ),
+                            expandFrom = Alignment.Top
+                        ),
+                exit = fadeOut(animationSpec = tween(durationMillis = 450)) +
+                        shrinkVertically(
+                            animationSpec = tween(durationMillis = 450, easing = LinearOutSlowInEasing),
+                            shrinkTowards = Alignment.Top
+                        )
+            ) {
+                Column {
                     ToggleListItem(
-                        label           = stringResource(R.string.settings_record_third_party_calls),
-                        description     = stringResource(R.string.settings_record_third_party_calls_description),
-                        checked         = recordThirdPartyCalls,
-                        onCheckedChange = { actions.setRecordThirdPartyCalls(it) }
+                        label           = stringResource(R.string.settings_ignore_anonymous_incoming),
+                        checked         = ignoreAnonymousIncoming,
+                        onCheckedChange = { actions.setIgnoreAnonymousIncoming(it) }
+                    )
+                    ToggleListItem(
+                        label           = stringResource(R.string.settings_ignore_cross_country_incoming),
+                        checked         = ignoreCrossCountryIncoming,
+                        onCheckedChange = { actions.setIgnoreCrossCountryIncoming(it) },
+                        enabled         = ignoreAnonymousIncoming
+                    )
+                    IgnoreContactsOptions(
+                        label           = stringResource(R.string.settings_ignore_contacts_incoming),
+                        selectedEnum     = ignoreContactsModeIncoming,
+                        selectedCount    = ignoredContactsIncomingCount,
+                        onSelected      = { actions.setIgnoreContactsModeIncoming(it) },
+                        onSelectContacts = onOpenContactsIncoming
                     )
                 }
-                CallDetectionMode.PhoneState -> {
-                    WarningCard(
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                        title = stringResource(R.string.settings_call_detection_method_warning_title),
-                        message = stringResource(R.string.call_detection_mode_phonestate_limited_support)
+            }
+
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
+
+        }
+        SettingsSection(title = stringResource(R.string.ui_outgoing_rules)) {
+            ToggleListItem(
+                label           = stringResource(R.string.settings_auto_record_outgoing),
+                checked         = autoRecordOutgoing,
+                onCheckedChange = { actions.setAutoRecordOutgoing(it) }
+            )
+            AnimatedVisibility(
+                visible = autoRecordOutgoing,
+                enter = fadeIn(animationSpec = tween(durationMillis = 500)) +
+                        expandVertically(
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioNoBouncy,
+                                stiffness = Spring.StiffnessMedium
+                            ),
+                            expandFrom = Alignment.Top
+                        ),
+                exit = fadeOut(animationSpec = tween(durationMillis = 450)) +
+                        shrinkVertically(
+                            animationSpec = tween(durationMillis = 450, easing = LinearOutSlowInEasing),
+                            shrinkTowards = Alignment.Top
+                        )
+            ) {
+                Column {
+                    ToggleListItem(
+                        label           = stringResource(R.string.settings_ignore_cross_country_outgoing),
+                        checked         = ignoreCrossCountryOutgoing,
+                        onCheckedChange = { actions.setIgnoreCrossCountryOutgoing(it) }
+                    )
+                    IgnoreContactsOptions(
+                        label           = stringResource(R.string.settings_ignore_contacts_outgoing),
+                        selectedEnum     = ignoreContactsModeOutgoing,
+                        selectedCount    = ignoredContactsOutgoingCount,
+                        onSelected      = { actions.setIgnoreContactsModeOutgoing(it) },
+                        onSelectContacts = onOpenContactsOutgoing
                     )
                 }
-                //CallDetectionMode.NotificationListener -> {} // TODO: Add comment?
-            }
-        }
-
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), thickness = 0.5.dp)
-
-        ListItem(
-            modifier = Modifier
-                .clickable { onSelectFolder() }
-                .semantics(mergeDescendants = true) {},
-            headlineContent = { Text(stringResource(R.string.settings_recording_folder_label)) },
-            supportingContent = {
-                Text(
-                    text = recordingFolderLabel ?: stringResource(R.string.settings_tap_to_select_folder),
-                    color = MaterialTheme.colorScheme.primary
-                )
-            },
-            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-            trailingContent = {
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null
-                )
-            },
-        )
-
-        ListItem(
-            modifier = Modifier
-                .clickable { showFileNameFormatDialog = true }
-                .semantics(mergeDescendants = true) {},
-            headlineContent = { Text(stringResource(R.string.settings_file_name_template)) },
-            supportingContent = {
-                Text(
-                    text = fileNameFormat,
-                    color = MaterialTheme.colorScheme.primary
-                )
-            },
-            trailingContent = {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = null
-                )
-            },
-            colors = ListItemDefaults.colors(containerColor = Color.Transparent)
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
-
-        ToggleListItem(
-            label = stringResource(R.string.settings_post_recording_notification),
-            description = stringResource(R.string.settings_post_recording_notification_description),
-            checked = postRecordingFileNotifications,
-            onCheckedChange = { actions.setPostRecordingFileNotification(it) }
-        )
-
-        ToggleListItem(
-            label           = stringResource(R.string.settings_vibration_enabled),
-            checked         = isVibrationEnabled,
-            onCheckedChange = { actions.setVibrationEnabled(it) }
-        )
-
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
-
-        ToggleListItem(
-            label           = stringResource(R.string.settings_auto_record_incoming),
-            checked         = autoRecordIncoming,
-            onCheckedChange = { actions.setAutoRecordIncoming(it) }
-        )
-        AnimatedVisibility(
-            visible = autoRecordIncoming,
-            enter = fadeIn(animationSpec = tween(durationMillis = 500)) +
-                    expandVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        expandFrom = Alignment.Top
-                    ),
-            exit = fadeOut(animationSpec = tween(durationMillis = 450)) +
-                    shrinkVertically(
-                        animationSpec = tween(durationMillis = 450, easing = LinearOutSlowInEasing),
-                        shrinkTowards = Alignment.Top
-                    )
-        ) {
-            Column {
-                ToggleListItem(
-                    label           = stringResource(R.string.settings_ignore_anonymous_incoming),
-                    checked         = ignoreAnonymousIncoming,
-                    onCheckedChange = { actions.setIgnoreAnonymousIncoming(it) }
-                )
-                ToggleListItem(
-                    label           = stringResource(R.string.settings_ignore_cross_country_incoming),
-                    checked         = ignoreCrossCountryIncoming,
-                    onCheckedChange = { actions.setIgnoreCrossCountryIncoming(it) },
-                    enabled         = ignoreAnonymousIncoming
-                )
-                IgnoreContactsOptions(
-                    label           = stringResource(R.string.settings_ignore_contacts_incoming),
-                    selectedEnum     = ignoreContactsModeIncoming,
-                    selectedCount    = ignoredContactsIncomingCount,
-                    onSelected      = { actions.setIgnoreContactsModeIncoming(it) },
-                    onSelectContacts = onOpenContactsIncoming
-                )
-            }
-        }
-
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp)
-
-        ToggleListItem(
-            label           = stringResource(R.string.settings_auto_record_outgoing),
-            checked         = autoRecordOutgoing,
-            onCheckedChange = { actions.setAutoRecordOutgoing(it) }
-        )
-        AnimatedVisibility(
-            visible = autoRecordOutgoing,
-            enter = fadeIn(animationSpec = tween(durationMillis = 500)) +
-                    expandVertically(
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioMediumBouncy,
-                            stiffness = Spring.StiffnessLow
-                        ),
-                        expandFrom = Alignment.Top
-                    ),
-            exit = fadeOut(animationSpec = tween(durationMillis = 450)) +
-                    shrinkVertically(
-                        animationSpec = tween(durationMillis = 450, easing = LinearOutSlowInEasing),
-                        shrinkTowards = Alignment.Top
-                    )
-        ) {
-            Column {
-                ToggleListItem(
-                    label           = stringResource(R.string.settings_ignore_cross_country_outgoing),
-                    checked         = ignoreCrossCountryOutgoing,
-                    onCheckedChange = { actions.setIgnoreCrossCountryOutgoing(it) }
-                )
-                IgnoreContactsOptions(
-                    label           = stringResource(R.string.settings_ignore_contacts_outgoing),
-                    selectedEnum     = ignoreContactsModeOutgoing,
-                    selectedCount    = ignoredContactsOutgoingCount,
-                    onSelected      = { actions.setIgnoreContactsModeOutgoing(it) },
-                    onSelectContacts = onOpenContactsOutgoing
-                )
             }
         }
     }
@@ -832,7 +859,7 @@ private fun AudioSection(preferences: AppPreferences, updateTrigger: Int, action
         
         M3DropdownField(
             label = stringResource(R.string.settings_audio_codec),
-            selected = codecOptions.find { it.key == audioCodec.key && it.enabled }
+            selected = codecOptions.find { it.key == audioCodec.key }
                 ?: codecOptions.first(), // "panic" fallback
             options = codecOptions,
             onOptionSelected = { actions.setAudioCodec(it.key) },
@@ -864,7 +891,7 @@ private fun AudioSection(preferences: AppPreferences, updateTrigger: Int, action
 
         M3DropdownField(
             label = stringResource(R.string.settings_audio_bitrate),
-            selected = bitrateOptions.find { it.key == savedBitRate.toString() && it.enabled }
+            selected = bitrateOptions.find { it.key == savedBitRate.toString() }
                 ?: bitrateOptions.first(), // "panic" fallback
             options = bitrateOptions,
             onOptionSelected = { actions.setAudioBitRate(it.key.toInt()) },
@@ -1046,31 +1073,12 @@ private fun DebugSection(preferences: AppPreferences, updateTrigger: Int, action
 
 /** A titled card that groups related settings together.
  *
- * @param title   Section heading shown in the app's primary colour above the card.
- * @param content The slot for child Composables rendered inside the [ElevatedCard].
+ * @param title Section heading above the shared outlined card.
+ * @param content Controls rendered inside the card.
  */
 @Composable
 private fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(
-            text       = title,
-            style      = MaterialTheme.typography.titleSmall,
-            color      = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold,
-            modifier   = Modifier.padding(start = 4.dp)
-        )
-        ElevatedCard(
-            modifier  = Modifier.fillMaxWidth(),
-            colors    = CardDefaults.elevatedCardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-            ),
-            elevation = CardDefaults.elevatedCardElevation(defaultElevation = 1.dp)
-        ) {
-            Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                content()
-            }
-        }
-    }
+    RecorderSection(title, content)
 }
 
 /**

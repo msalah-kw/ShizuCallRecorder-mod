@@ -8,6 +8,8 @@
 
 package com.kitsumed.shizucallrecorder.ui.screens
 
+import com.kitsumed.shizucallrecorder.ui.common.RecorderPageHeader
+
 import android.content.pm.PackageManager
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.*
@@ -147,12 +149,9 @@ fun SponsorScreen(
         ) {
             // Header
             StaggeredFadePop(index = 0) {
-                Text(
-                    text = stringResource(R.string.sponsor_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier.statusBarsPadding().padding(top = 24.dp)
+                RecorderPageHeader(
+                    stringResource(R.string.sponsor_title), stringResource(R.string.ui_support_description),
+                    Modifier.statusBarsPadding().padding(top = 8.dp)
                 )
             }
 
@@ -213,7 +212,7 @@ fun SponsorScreen(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
                         ),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = MaterialTheme.shapes.large,
                         modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}
                     ) {
                         Row(

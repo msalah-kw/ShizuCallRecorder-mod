@@ -8,9 +8,14 @@
 
 package com.kitsumed.shizucallrecorder.ui.common
 
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.imePadding
+
 import android.graphics.ImageDecoder
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -123,10 +128,14 @@ fun ContactSelectionContent(
 
     Surface(
         modifier = modifier
-            .fillMaxSize()
-            .padding(16.dp),
+            .widthIn(max = 640.dp)
+            .fillMaxWidth()
+            .fillMaxHeight(0.9f)
+            .imePadding()
+            .padding(12.dp),
         shape = MaterialTheme.shapes.extraLarge,
-        tonalElevation = 6.dp
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Text(
@@ -211,10 +220,7 @@ fun ContactSelectionContent(
                 ) {
                     TextButton(
                         onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError
-                        )
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
                     ) {
                         Text(stringResource(R.string.general_cancel))
                     }
@@ -273,6 +279,7 @@ private fun ContactListItem(
             },
             supportingContent = { Text(contact.displayNumbers) },
             leadingContent = { ContactAvatar(contact) },
+            trailingContent = { Checkbox(checked = isSelected, onCheckedChange = null) },
             colors = ListItemDefaults.colors(
                 containerColor = backgroundColor // Background is applied via the modifier above.
             )

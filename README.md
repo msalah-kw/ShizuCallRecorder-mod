@@ -18,6 +18,8 @@ The first **non-root FOSS call recorder app for Android 11+**! ShizuCallRecorder
 
 ## Features
 
+This fork also includes a [modern interface preview](docs/ui-redesign.md), with a four-page workspace, Arabic layouts, and light/dark themes.
+
 - Records **both sides of phone calls** (incoming and outgoing)
     - Should work even when using Bluetooth or a remote headset
 - **Separate uplink and downlink audio** inside a stereo recording

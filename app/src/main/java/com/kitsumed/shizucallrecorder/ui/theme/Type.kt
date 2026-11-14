@@ -14,29 +14,24 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 
-// Set of Material typography styles to start with
+private fun recorderText(size: Int, height: Int, weight: FontWeight = FontWeight.Normal) = TextStyle(
+    fontFamily = FontFamily.SansSerif, fontWeight = weight,
+    fontSize = size.sp, lineHeight = height.sp, letterSpacing = 0.sp
+)
+
 val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
-    ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
-    )
-    */
+    displayLarge = recorderText(48, 58, FontWeight.Bold),
+    displayMedium = recorderText(40, 50, FontWeight.Bold),
+    displaySmall = recorderText(34, 44, FontWeight.Bold),
+    headlineLarge = recorderText(30, 40, FontWeight.Bold),
+    headlineMedium = recorderText(26, 36, FontWeight.Bold),
+    headlineSmall = recorderText(23, 32, FontWeight.SemiBold),
+    titleLarge = recorderText(20, 30, FontWeight.SemiBold),
+    titleMedium = recorderText(16, 24, FontWeight.SemiBold),
+    titleSmall = recorderText(14, 22, FontWeight.SemiBold),
+    bodyLarge = recorderText(16, 26), bodyMedium = recorderText(14, 23),
+    bodySmall = recorderText(12, 20),
+    labelLarge = recorderText(14, 22, FontWeight.SemiBold),
+    labelMedium = recorderText(12, 18, FontWeight.Medium),
+    labelSmall = recorderText(11, 16, FontWeight.Medium)
 )
