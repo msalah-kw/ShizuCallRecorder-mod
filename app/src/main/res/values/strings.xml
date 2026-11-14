@@ -372,7 +372,7 @@
     <string name="ui_recordings_folder">Your recordings folder</string>
     <string name="ui_folder_unavailable">Cannot open this folder. Choose it again in the system picker.</string>
     <string name="ui_audio_profile">Your audio profile</string>
-    <string name="ui_setup_progress">%1$d of %2$d setup steps complete</string>
+    <string name="ui_setup_progress">Setup progress: %1$d / %2$d</string>
     <string name="ui_welcome_description">A little setup. A clearer experience.</string>
     <string name="ui_support_description">Help keep independent, open-source development going.</string>
     <string name="ui_voip_help">Device test guide</string>

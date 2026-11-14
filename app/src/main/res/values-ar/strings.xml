@@ -224,7 +224,7 @@
     <string name="ui_recordings_folder">مجلد تسجيلاتك</string>
     <string name="ui_folder_unavailable">تعذّر فتح المجلد. اختره مجددًا من منتقي الملفات.</string>
     <string name="ui_audio_profile">إعدادات صوتك</string>
-    <string name="ui_setup_progress">اكتملت %1$d من %2$d خطوات الإعداد</string>
+    <string name="ui_setup_progress">تقدّم الإعداد: %1$d / %2$d</string>
     <string name="ui_welcome_description">إعداد بسيط، وتجربة أوضح.</string>
     <string name="ui_support_description">ساهم في استمرار تطوير تطبيق مستقل ومفتوح المصدر.</string>
     <string name="ui_voip_help">دليل تجربة الجهاز</string>
