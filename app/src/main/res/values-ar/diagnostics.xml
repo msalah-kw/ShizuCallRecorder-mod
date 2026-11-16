@@ -15,7 +15,9 @@
     <string name="diagnostics_description">ابدأ اللوج، ثم كرر المشكلة، وأوقفه واحفظ التقرير. يجمع شيزوكو حالة خدمات الصوت وأخطاء النظام الحديثة كل 20 ثانية؛ العينات ليست تسجيلاً مستمرًا لكل أحداث النظام.</string>
     <string name="diagnostics_path">مجلد اللوج الداخلي: %1$s</string>
     <string name="diagnostics_download_path">التقارير: Download/ShizuCallRecorder/Logs</string>
-    <string name="diagnostics_last_sample">آخر عينة ناجحة من شيزوكو: %1$s</string>
+    <string name="diagnostics_last_sample">آخر عينة محفوظة من شيزوكو: %1$s</string>
+    <string name="diagnostics_commands_failed">تعذر إكمال الأوامر: %1$s. التفاصيل وأي مخرجات جزئية محفوظة في التقرير.</string>
+    <string name="diagnostics_limited">تم حفظ اللوج. اختُصرت المخرجات الطويلة للأوامر: %1$s. هذا لا يعني فشل الأمر.</string>
     <string name="diagnostics_error">خطأ في التشخيص: %1$s</string>
     <string name="diagnostics_debug_description">إظهار أدوات الاختبار المتقدمة. يظل إخفاء أرقام الهاتف مفعلاً.</string>
     <string name="diagnostics_privacy">الإيقاف يحتفظ باللوج. تدوير تلقائي بحد أقصى 12 MiB. قد يحتوي التقرير على بيانات نظام خاصة؛ راجعه قبل مشاركته.</string>

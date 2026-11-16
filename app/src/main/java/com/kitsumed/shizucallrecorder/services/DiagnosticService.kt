@@ -14,7 +14,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-data class DiagnosticState(val running: Boolean = false, val lastSample: Long = 0, val error: String? = null)
+data class DiagnosticState(val running: Boolean = false, val lastSample: Long = 0, val error: String? = null, val warning: String? = null)
 
 /** User-started foreground session; never restarts itself after process death. */
 class DiagnosticService : Service() {
@@ -68,11 +68,12 @@ class DiagnosticService : Service() {
             val snapshot = shell.collectDiagnosticSnapshot()
             currentCoroutineContext().ensureActive()
             AppLogger.appendDiagnosticSnapshot(snapshot)
-            val completedCommands = Regex("\\[exit=0\\]").findAll(snapshot).count()
+            val summary = com.kitsumed.shizucallrecorder.services.shell.DiagnosticSnapshot.parseSummary(snapshot)
             mutableState.value = DiagnosticState(
                 running = true,
                 lastSample = System.currentTimeMillis(),
-                error = if (completedCommands == 3) null else "Some Shizuku commands failed or reached a limit; details saved in shizuku.log"
+                error = summary.failed.takeIf { it.isNotEmpty() }?.let { getString(R.string.diagnostics_commands_failed, it.joinToString(", ")) },
+                warning = summary.truncated.takeIf { it.isNotEmpty() }?.let { getString(R.string.diagnostics_limited, it.joinToString(", ")) }
             )
         } catch (cancelled: CancellationException) {
             if (cancelled is TimeoutCancellationException && currentCoroutineContext().isActive) {

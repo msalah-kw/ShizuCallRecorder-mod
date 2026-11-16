@@ -16,7 +16,9 @@
     <string name="diagnostics_description">Start, reproduce the problem, then stop and save the report. Shizuku samples audio services and recent system errors every 20 seconds; snapshots are not a continuous system trace.</string>
     <string name="diagnostics_path">Internal log folder: %1$s</string>
     <string name="diagnostics_download_path">Reports: Download/ShizuCallRecorder/Logs</string>
-    <string name="diagnostics_last_sample">Last successful Shizuku snapshot: %1$s</string>
+    <string name="diagnostics_last_sample">Last saved Shizuku snapshot: %1$s</string>
+    <string name="diagnostics_commands_failed">Commands could not finish: %1$s. Details and any partial output are saved in the report.</string>
+    <string name="diagnostics_limited">Log saved. Long output was shortened for: %1$s. This does not mean the command failed.</string>
     <string name="diagnostics_error">Diagnostic error: %1$s</string>
     <string name="diagnostics_debug_description">Show advanced test controls. Phone-number redaction stays enabled.</string>
     <string name="diagnostics_privacy">Stopping keeps saved logs. Logs rotate automatically (12 MiB maximum). Reports may include private system data; review before sharing.</string>

@@ -1239,6 +1239,7 @@ private fun DiagnosticControls(actions: SettingsActions, onExportLogs: () -> Uni
         Text(stringResource(R.string.diagnostics_download_path), style = MaterialTheme.typography.bodySmall)
         if (state.lastSample != 0L) Text(stringResource(R.string.diagnostics_last_sample, java.text.DateFormat.getDateTimeInstance().format(java.util.Date(state.lastSample))))
         (state.error ?: storageError)?.let { Text(stringResource(R.string.diagnostics_error, it), color = MaterialTheme.colorScheme.error) }
+        state.warning?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall) }
         Button(onClick = { actions.setLoggingEnabled(!state.running) }, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(if (state.running) R.string.diagnostics_stop else R.string.diagnostics_start))
         }

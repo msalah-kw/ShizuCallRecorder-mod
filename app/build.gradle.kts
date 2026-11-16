@@ -66,8 +66,8 @@ android {
         targetSdk = 37
         // Keep theses two values hard-coded here and update them per version. (To keep F-Droid compatibility since their parser is very basic)
         // Shizuku also uses versionCode to replace cached services after the IPC contract changes.
-        versionCode = 24
-        versionName = "2.0.2-beta.logs.1"
+        versionCode = 25
+        versionName = "2.0.2-beta.logs.2"
     }
     signingConfigs {
         // Signing config for CI environments.
