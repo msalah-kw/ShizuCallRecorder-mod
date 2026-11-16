@@ -80,11 +80,9 @@
     <string name="audio_source_voice_call_downlink_description">通話の相手側の音声のみ録音 (downlink).</string>
     <string name="settings_debug_logging_enabled">ログ保存を有効化</string>
     <string name="settings_debug_logging_enabled_description">バグをレポートする際は、このオプションを有効にし、アプリを再起動して問題を再現してください。</string>
-    <string name="settings_debug_logging_title">バグレポート手順</string>
     <string name="settings_debug_logging_generate_report">レポート生成</string>
     <string name="settings_debug_logging_report_on_github">GitHubで報告</string>
     <string name="settings_debug_mode">デバッグモードを有効化</string>
-    <string name="settings_debug_mode_description">開発者向けオプションを表示し、ログのマスキングを無効化します。</string>
     <string name="settings_view_licenses">ライセンスを表示</string>
     <string name="settings_open_github_Wiki">Wikiを開く</string>
     <string name="contact_search_hint">名前か電話番号で検索...</string>
@@ -108,8 +106,6 @@
     <string name="recording_shizuku_not_started">Shizuku-Server プロセスが停止しました。Shizukuを起動し、録音の際は常に実行出来るようにしてください。</string>
     <string name="recording_shizuku_permission_denied">アプリがShizukuを使えるよう許可してください。権限が拒否されました。</string>
     <string name="recording_shizuku_auth_key_missing">ShizukuインテントAuth Keyが見つかりません。アプリ設定から入力してください。</string>
-    <string name="settings_debug_logging_step_warning">共有する前にセンシティブな情報が含まれていないか確認してください。終わり次第ログ保存を無効にしてください。</string>
-    <string name="settings_debug_logging_step_warning_no_redaction">⚠️ デバックモードが有効です。ログはマスキングされません。</string>
     <string name="recording_toast_paused">録音が一時停止されました。</string>
     <string name="general_play">再生</string>
     <string name="general_share">共有</string>

@@ -147,14 +147,9 @@
     <string name="audio_source_voice_call_downlink_description">فقط صدای طرف مقابل در تماس تلفنی (مسیر دریافت/Downlink) را ضبط می‌کند.</string>
     <string name="settings_debug_logging_enabled">فعال کردن ثبت گزارش</string>
     <string name="settings_debug_logging_enabled_description">برای گزارش یک باگ، این گزینه را فعال کنید، برنامه را دوباره اجرا کنید و مشکل را تکرار کنید.</string>
-    <string name="settings_debug_logging_title">مراحل گزارش باگ</string>
-    <string name="settings_debug_logging_steps">۱. بررسی کنید آیا مشکل شما قبلاً در GitHub گزارش شده است؛ اگر نشده، ادامه دهید.\n۲. در حالی که ثبت گزارش فعال است، باگ را دوباره ایجاد کنید.\n۳. برای ذخیره گزارش‌ها در گوشی، روی «ایجاد گزارش» در پایین بزنید.\n۴. روی «گزارش در GitHub» بزنید تا یک Issue جدید باز شود، فیلدها را پر کنید و فایل گزارش را پیوست کنید.</string>
-    <string name="settings_debug_logging_step_warning">لطفاً پیش از اشتراک‌گذاری، فایل ایجادشده را از نظر وجود اطلاعات حساس بررسی کنید. پس از پایان کار، ثبت گزارش را غیرفعال کنید.</string>
-    <string name="settings_debug_logging_step_warning_no_redaction">⚠️ حالت اشکال‌زدایی روشن است. حذف اطلاعات حساس از گزارش غیرفعال است.</string>
     <string name="settings_debug_logging_generate_report">ایجاد گزارش</string>
     <string name="settings_debug_logging_report_on_github">گزارش در GitHub</string>
     <string name="settings_debug_mode">فعال کردن حالت اشکال‌زدایی</string>
-    <string name="settings_debug_mode_description">نمایش گزینه های توسعه دهندگان، غیرفعال کردن ویرایش گزارش.</string>
     <string name="settings_debug_caller_number">شماره تلفن برای اشکال‌زدایی</string>
     <string name="settings_view_licenses">«مشاهده مجوزها</string>
     <string name="settings_open_github_Wiki">باز کردن ویکی</string>

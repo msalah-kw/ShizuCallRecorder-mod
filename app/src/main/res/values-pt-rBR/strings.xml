@@ -93,14 +93,9 @@
     <string name="audio_source_voice_call_downlink_description">Registra apenas a outra pessoa de uma chamada telefônica (downlink).</string>
     <string name="settings_debug_logging_enabled">Habilitar gravação de log</string>
     <string name="settings_debug_logging_enabled_description">Para relatar um bug, habilite-o, reinicie o aplicativo e reproduza o problema.</string>
-    <string name="settings_debug_logging_title">Etapas de relatório de bugs</string>
-    <string name="settings_debug_logging_steps">1. Verifique se o seu problema já foi relatado no GitHub, caso contrário, continue.\n 2. Reproduza o bug enquanto mantém a gravação de log ativada.\n 3. Pressione Gerar relatório abaixo para salvar os registros em seu telefone.\n 4. Pressione Report no GitHub para abrir um novo problema, preencher os campos e anexar o arquivo de log.</string>
-    <string name="settings_debug_logging_step_warning">Revise o arquivo gerado para obter informações confidenciais antes de compartilhar. Desative a gravação de log quando terminar.</string>
-    <string name="settings_debug_logging_step_warning_no_redaction">⚠️ O modo de depuração está ativado. A redação do log está desativada.</string>
     <string name="settings_debug_logging_generate_report">Gerar relatório</string>
     <string name="settings_debug_logging_report_on_github">Relatório no GitHub</string>
     <string name="settings_debug_mode">Habilitar modo de depuração</string>
-    <string name="settings_debug_mode_description">Mostrar opções para desenvolvedores, desabilitar a redação de log.</string>
     <string name="settings_debug_caller_number">Número de telefone de depuração</string>
     <string name="settings_view_licenses">Ver licenças</string>
     <string name="contact_search_hint">Pesquise por nome ou número...</string>

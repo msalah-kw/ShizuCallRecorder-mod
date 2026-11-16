@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="diagnostics_title">التشخيص وسجل الأعطال</string>
+    <string name="diagnostics_active">تسجيل اللوج يعمل</string>
+    <string name="diagnostics_stopped">تسجيل اللوج متوقف</string>
+    <string name="diagnostics_start">بدء تسجيل لوج التشخيص</string>
+    <string name="diagnostics_stop">إيقاف تسجيل اللوج</string>
+    <string name="diagnostics_save">حفظ التقرير في التنزيلات</string>
+    <string name="diagnostics_saving">جارٍ حفظ تقرير التشخيص…</string>
+    <string name="diagnostics_exported">تم حفظ تقرير التشخيص</string>
+    <string name="diagnostics_export_failed">تعذر حفظ التقرير: %1$s</string>
+    <string name="diagnostics_saved">تم حفظ التقرير: %1$s</string>
+    <string name="diagnostics_save_elsewhere">حفظ في مكان آخر</string>
+    <string name="diagnostics_notification">تسجيل أحداث التطبيق وعينات حالة الصوت عبر شيزوكو</string>
+    <string name="diagnostics_description">ابدأ اللوج، ثم كرر المشكلة، وأوقفه واحفظ التقرير. يجمع شيزوكو حالة خدمات الصوت وأخطاء النظام الحديثة كل 20 ثانية؛ العينات ليست تسجيلاً مستمرًا لكل أحداث النظام.</string>
+    <string name="diagnostics_path">مجلد اللوج الداخلي: %1$s</string>
+    <string name="diagnostics_download_path">التقارير: Download/ShizuCallRecorder/Logs</string>
+    <string name="diagnostics_last_sample">آخر عينة ناجحة من شيزوكو: %1$s</string>
+    <string name="diagnostics_error">خطأ في التشخيص: %1$s</string>
+    <string name="diagnostics_debug_description">إظهار أدوات الاختبار المتقدمة. يظل إخفاء أرقام الهاتف مفعلاً.</string>
+    <string name="diagnostics_privacy">الإيقاف يحتفظ باللوج. تدوير تلقائي بحد أقصى 12 MiB. قد يحتوي التقرير على بيانات نظام خاصة؛ راجعه قبل مشاركته.</string>
+</resources>

@@ -68,6 +68,7 @@ interface SettingsActions {
     fun setDebugEnabled(enabled: Boolean)
     fun setDebugCallerNumber(number: String)
     fun triggerDebugAction(action: DebugAction)
+    fun saveLogs() {}
     fun exportLogs(uri: android.net.Uri)
     fun getAppVersion(): String
     fun setShizukuAutoManageEnabled(enabled: Boolean)
@@ -366,13 +367,17 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
      */
     override fun setLoggingEnabled(enabled: Boolean) {
         preferences.setLoggingEnabled(enabled)
-        if (!enabled) {
-            AppLogger.clearLogs()
+        try {
+            if (enabled) com.kitsumed.shizucallrecorder.services.DiagnosticService.start(appContext)
+            else com.kitsumed.shizucallrecorder.services.DiagnosticService.stop(appContext)
+        } catch (failure: RuntimeException) {
+            preferences.setLoggingEnabled(false)
+            showLogMessage("Cannot start diagnostics: ${failure.message}")
         }
         refresh()
     }
 
-    /** Enables or disables the debug panel and other internal debug checks like log redactions.
+    /** Enables or disables the advanced simulated-call debug panel.
      *
      * @param enabled `true` to show the debug panel.
      */
@@ -414,7 +419,33 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
      */
     override fun exportLogs(uri: android.net.Uri) {
         viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
-            AppLogger.exportReport(appContext, uri)
+            try {
+                AppLogger.exportReport(appContext, uri)
+                showLogMessage(appContext.getString(com.kitsumed.shizucallrecorder.R.string.diagnostics_exported))
+            } catch (failure: Exception) {
+                showLogMessage(appContext.getString(com.kitsumed.shizucallrecorder.R.string.diagnostics_export_failed, failure.message))
+            }
+        }
+    }
+
+    private var exportJob: kotlinx.coroutines.Job? = null
+
+    override fun saveLogs() {
+        if (exportJob?.isActive == true) return
+        showLogMessage(appContext.getString(com.kitsumed.shizucallrecorder.R.string.diagnostics_saving))
+        exportJob = viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                val path = com.kitsumed.shizucallrecorder.utils.DiagnosticExport.save(appContext)
+                showLogMessage(appContext.getString(com.kitsumed.shizucallrecorder.R.string.diagnostics_saved, path))
+            } catch (failure: Exception) {
+                showLogMessage(appContext.getString(com.kitsumed.shizucallrecorder.R.string.diagnostics_export_failed, failure.message))
+            }
+        }
+    }
+
+    private fun showLogMessage(message: String) {
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.Main) {
+            android.widget.Toast.makeText(appContext, message, android.widget.Toast.LENGTH_LONG).show()
         }
     }
 

@@ -21,7 +21,6 @@ import android.content.pm.PackageManager
 import android.os.IBinder
 import com.kitsumed.shizucallrecorder.BuildConfig
 import com.kitsumed.shizucallrecorder.IShellService
-import com.kitsumed.shizucallrecorder.data.AppPreferences
 import com.kitsumed.shizucallrecorder.services.shell.ShellService
 import com.kitsumed.shizucallrecorder.utils.AppLogger
 import kotlinx.coroutines.delay
@@ -278,13 +277,21 @@ class ShizukuConnectionManager(
              * @param binder The AIDL proxy to the running [ShellService]. valid until [onDisconnected].
              */
             override fun onServiceConnected(name: ComponentName, binder: IBinder?) {
+                if (!continuation.isActive) {
+                    unbind()
+                    return
+                }
                 if (binder != null) {
                     val proxy = IShellService.Stub.asInterface(binder)
                     AppLogger.i( "ShellService connected successfully")
 
-                    val appPreferences = AppPreferences(context)
-                    proxy.setLogCallback(AppLogger.callback, !appPreferences.isDebugEnabled())
-                    AppLogger.d( "ShellService log callback set, redaction mode: ${!appPreferences.isDebugEnabled()}")
+                    try {
+                        proxy.setLogCallback(AppLogger.callback, true)
+                    } catch (failure: android.os.RemoteException) {
+                        if (continuation.isActive) continuation.resumeWithException(failure)
+                        return
+                    }
+                    AppLogger.d("ShellService log callback set; phone-number redaction enabled")
 
                     if (continuation.isActive) {
                         continuation.resume(proxy)

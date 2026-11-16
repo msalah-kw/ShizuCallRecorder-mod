@@ -137,14 +137,9 @@
     <string name="audio_source_voice_call_downlink_description">Nahráva iba to, čo hovorí druhá strana počas telefonátu (prichádzajúci hovor).</string>
     <string name="settings_debug_logging_enabled">Zapnúť zaznamenávanie protokolov</string>
     <string name="settings_debug_logging_enabled_description">Ak chcete nahlásiť chybu, aktivujte túto funkciu, reštartujte aplikáciu a pokúste sa problém zopakovať.</string>
-    <string name="settings_debug_logging_title">Postup pri hlásení chýb</string>
-    <string name="settings_debug_logging_steps">1. Skontrolujte, či už nebol váš problém nahlásený na GitHub-e; ak nie, pokračujte.\n 2. Zopakujte chybu so zapnutým zaznamenávaním protokolov.\n 3. Stlačte tlačidlo „Vytvoriť správu“ nižšie, aby ste protokoly uložili do telefónu.\n 4. Stlačte tlačidlo „Nahlásiť na GitHub-e“, aby ste otvorili nový problém, vyplňte polia a priložte súbor s protokolom.</string>
-    <string name="settings_debug_logging_step_warning">Pred zdieľaním prosím skontrolujte, či vygenerovaný súbor neobsahuje citlivé informácie. Po dokončení vypnite zaznamenávanie protokolov.</string>
-    <string name="settings_debug_logging_step_warning_no_redaction">⚠️ Režim ladenia je zapnutý. Upravovanie protokolov je vypnuté.</string>
     <string name="settings_debug_logging_generate_report">Vytvoriť správu</string>
     <string name="settings_debug_logging_report_on_github">Nahlásiť na GitHub</string>
     <string name="settings_debug_mode">Zapnúť režim ladenia</string>
-    <string name="settings_debug_mode_description">Zobraziť možnosti pre vývojárov a vypnúť prepisovanie protokolu.</string>
     <string name="settings_debug_caller_number">Číslo telefónu na odstraňovanie chýb</string>
     <string name="settings_view_licenses">Zobraziť licencie</string>
     <string name="settings_open_github_Wiki">Otvoriť Wiki</string>

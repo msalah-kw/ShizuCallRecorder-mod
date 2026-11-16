@@ -112,7 +112,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    
+
     // Trigger recomposition when settings change by viewmodel.refresh()
     val updateTrigger by viewModel.updateTrigger.collectAsState()
 
@@ -227,9 +227,10 @@ fun SettingsContent(
                                     }
                                     RecorderDestination.AUDIO -> item { AudioSection(preferences, updateTrigger, actions) }
                                     RecorderDestination.SETTINGS -> {
+                                        item { DebugSection(preferences, updateTrigger, actions, onExportLogs) }
                                         item { VisualSection(preferences, updateTrigger, actions) }
                                         item { SecuritySection(preferences, updateTrigger, actions) }
-                                        item { DebugSection(preferences, updateTrigger, actions, onExportLogs) }
+
                                         item { AboutSection(versionString = actions.getAppVersion()) }
                                     }
                                 }
@@ -418,8 +419,8 @@ private fun VisualSection(preferences: AppPreferences, updateTrigger: Int, actio
         val defaultThemeMode = AppPreferences.DefaultsValue.THEME_MODE.key
         M3DropdownField(
             label    = stringResource(R.string.settings_theme_mode),
-            selected = themeOptions.find { it.key == currentThemeMode.key } 
-                ?: themeOptions.find { it.key == defaultThemeMode } 
+            selected = themeOptions.find { it.key == currentThemeMode.key }
+                ?: themeOptions.find { it.key == defaultThemeMode }
                 ?: themeOptions.first(),
             options  = themeOptions,
             onOptionSelected = { actions.setThemeMode(AppPreferences.ThemeMode.fromKey(it.key)) },
@@ -570,7 +571,7 @@ private fun RecordingSection(
     onOpenContactsOutgoing: () -> Unit
 ) {
     val context = LocalContext.current
-    
+
     // Evaluate these here so they are fetched on every recomposition.
     val recordingFolderLabel = remember(updateTrigger) { SafHelper.getFolderDisplayNameOrNull(context, preferences.getRecordingFolderUri()) }
     val callDetectionMode = remember(updateTrigger) { preferences.getCallDetectionMode() }
@@ -817,7 +818,7 @@ private fun AudioSection(preferences: AppPreferences, updateTrigger: Int, action
     val isPlaybackCaptureAllowed = remember(updateTrigger) { preferences.isPlaybackCaptureAllowed() }
     val isAudioChannelSplitEnabled = remember(updateTrigger) { preferences.isAudioChannelSplitEnabled() }
     val savedBitRate = remember(updateTrigger) { preferences.getAudioBitRate() }
-        
+
     SettingsSection(title = stringResource(R.string.settings_section_audio)) {
         // Build the source list from the enum, hiding debug-only entries when debug is off.
         // Items that require an API level not available on this device are shown as disabled.
@@ -856,7 +857,7 @@ private fun AudioSection(preferences: AppPreferences, updateTrigger: Int, action
                     enabled = codec.isSupported() && meetsStereoRequirement
                 )
             }
-        
+
         M3DropdownField(
             label = stringResource(R.string.settings_audio_codec),
             selected = codecOptions.find { it.key == audioCodec.key }
@@ -927,99 +928,15 @@ private fun AudioSection(preferences: AppPreferences, updateTrigger: Int, action
 private fun DebugSection(preferences: AppPreferences, updateTrigger: Int, actions: SettingsActions, onExportLogs: () -> Unit) {
     val isDebugEnabled = remember(updateTrigger) { preferences.isDebugEnabled() }
     val debugCallerNumber = remember(updateTrigger) { preferences.getDebugCallerNumber() }
-    val isLoggingEnabled = remember(updateTrigger) { preferences.isLoggingEnabled() }
-    val context = LocalContext.current
 
-    SettingsSection(title = stringResource(R.string.settings_section_debug)) {
-        ToggleListItem(
-            label           = stringResource(R.string.settings_debug_logging_enabled),
-            checked         = isLoggingEnabled,
-            onCheckedChange = { actions.setLoggingEnabled(it) },
-            description     = if (!isLoggingEnabled) stringResource(R.string.settings_debug_logging_enabled_description) else null
-        )
-
-        AnimatedVisibility(
-            visible = isLoggingEnabled,
-            enter = fadeIn(animationSpec = tween(400)) +
-                    expandVertically(
-                        animationSpec = tween(400, easing = LinearOutSlowInEasing),
-                        expandFrom = Alignment.Top
-                    ),
-            exit = fadeOut(animationSpec = tween(300)) +
-                    shrinkVertically(
-                        animationSpec = tween(300, easing = LinearOutSlowInEasing),
-                        shrinkTowards = Alignment.Top
-                    )
-        ) {
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp)
-            ) {
-                Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp)) {
-                    Text(
-                        text = stringResource(R.string.settings_debug_logging_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    Text(
-                        text = stringResource(R.string.settings_debug_logging_steps),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(
-                        text = stringResource(R.string.settings_debug_logging_step_warning),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-
-                    if (isDebugEnabled) {
-                        Spacer(modifier = Modifier.height(5.dp))
-                        Text(
-                            text = stringResource(R.string.settings_debug_logging_step_warning_no_redaction),
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = onExportLogs,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.settings_debug_logging_generate_report))
-                        }
-
-                        OutlinedButton(
-                            onClick = { context.openGithubReportIssue()},
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text(stringResource(R.string.settings_debug_logging_report_on_github))
-                        }
-                    }
-                }
-
-            }
-        }
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp), thickness = 0.5.dp)
+    SettingsSection(title = stringResource(R.string.diagnostics_title)) {
+        DiagnosticControls(actions, onExportLogs)
 
         ToggleListItem(
             label           = stringResource(R.string.settings_debug_mode),
             checked         = isDebugEnabled,
             onCheckedChange = { actions.setDebugEnabled(it) },
-            description = stringResource(R.string.settings_debug_mode_description)
+            description = stringResource(R.string.diagnostics_debug_description)
         )
 
         AnimatedVisibility(
@@ -1307,5 +1224,28 @@ private fun SettingsScreenPreview() {
             onDismissContacts = {},
             onExportLogs = {}
         )
+    }
+}
+
+@Composable
+private fun DiagnosticControls(actions: SettingsActions, onExportLogs: () -> Unit) {
+    val state by com.kitsumed.shizucallrecorder.services.DiagnosticService.state.collectAsState()
+    val storageError by com.kitsumed.shizucallrecorder.utils.AppLogger.storageError.collectAsState()
+    val context = LocalContext.current
+    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(stringResource(if (state.running) R.string.diagnostics_active else R.string.diagnostics_stopped), style = MaterialTheme.typography.titleMedium)
+        Text(stringResource(R.string.diagnostics_description), style = MaterialTheme.typography.bodyMedium)
+        Text(stringResource(R.string.diagnostics_path, com.kitsumed.shizucallrecorder.utils.DiagnosticFiles.directory(context).absolutePath), style = MaterialTheme.typography.bodySmall)
+        Text(stringResource(R.string.diagnostics_download_path), style = MaterialTheme.typography.bodySmall)
+        if (state.lastSample != 0L) Text(stringResource(R.string.diagnostics_last_sample, java.text.DateFormat.getDateTimeInstance().format(java.util.Date(state.lastSample))))
+        (state.error ?: storageError)?.let { Text(stringResource(R.string.diagnostics_error, it), color = MaterialTheme.colorScheme.error) }
+        Button(onClick = { actions.setLoggingEnabled(!state.running) }, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(if (state.running) R.string.diagnostics_stop else R.string.diagnostics_start))
+        }
+        Button(onClick = { actions.saveLogs() }, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.diagnostics_save))
+        }
+        TextButton(onClick = onExportLogs) { Text(stringResource(R.string.diagnostics_save_elsewhere)) }
+        Text(stringResource(R.string.diagnostics_privacy), style = MaterialTheme.typography.bodySmall)
     }
 }

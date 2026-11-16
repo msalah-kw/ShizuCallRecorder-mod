@@ -90,14 +90,9 @@
     <string name="audio_source_voice_call_downlink_description">Csak a másik fél oldalát rögzíti a telefonbeszélgetésből (bejövő irány).</string>
     <string name="settings_debug_logging_enabled">Naplózás bekapcsolása</string>
     <string name="settings_debug_logging_enabled_description">Hibajelentéshez engedélyezze a beállítást, indítsa újra az alkalmazást majd próbálja reprodukálni az esetet.</string>
-    <string name="settings_debug_logging_title">A hibajelentés lépései</string>
-    <string name="settings_debug_logging_steps">1. Ellenőrizze, hogy a problémát jelentették-e már a GitHubon; ha nem, folytassa.\n2. Reprodukálja a hibát úgy, hogy a naplózás engedélyezve van.\n3. Használja az alul található „Jelentés generálása” gombot a naplófájlok telefonra mentéséhez.\n4. Használja a „Jelentés a GitHubon” gombot egy új hibajelentés nyitásához, töltse ki a mezőket és csatolja a naplófájlt.</string>
-    <string name="settings_debug_logging_step_warning">A megosztás előtt ellenőrizze a létrehozott fájlt, nem tartalmaz-e bizalmas információkat. Ha elkészült, tiltsa le a naplózást.</string>
-    <string name="settings_debug_logging_step_warning_no_redaction">⚠️ Hibakeresési mód bekapcsolva. A naplószűrés nincs bekapcsolva.</string>
     <string name="settings_debug_logging_generate_report">Jelentés generálása</string>
     <string name="settings_debug_logging_report_on_github">Jelentés a GitHub-on</string>
     <string name="settings_debug_mode">Hibakeresés mód bekapcsolása</string>
-    <string name="settings_debug_mode_description">Fejlesztői beállítások megjelenítése, a naplószűrés kikapcsolása.</string>
     <string name="settings_debug_caller_number">Telefonszám hibakeresés</string>
     <string name="settings_view_licenses">Licencek megtekintése</string>
     <string name="contact_search_hint">Keresés név vagy szám alapján...</string>

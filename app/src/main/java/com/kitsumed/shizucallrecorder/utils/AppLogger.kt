@@ -17,7 +17,6 @@ import com.kitsumed.shizucallrecorder.BuildConfig
 import com.kitsumed.shizucallrecorder.ILogCallback
 import com.kitsumed.shizucallrecorder.data.AppPreferences
 import com.kitsumed.shizucallrecorder.system.permissions.AppPermission
-import com.kitsumed.shizucallrecorder.utils.AppLogger.redact
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,9 +25,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import rikka.shizuku.Shizuku
-import java.io.BufferedWriter
-import java.io.File
-import java.io.FileWriter
 import java.io.OutputStreamWriter
 import java.io.PrintWriter
 import java.text.SimpleDateFormat
@@ -55,35 +51,26 @@ object AppLogger {
      */
     private var remoteCallback: ILogCallback? = null
 
-    /** Maximum number of lines the log file can hold before being trimmed. */
-    private const val MAX_LOG_LINES = 1500
-
-    /** Number of lines to retain when the log file is trimmed. */
-    private const val LINES_TO_KEEP = 1000
 
     /** Coroutine scope dedicated to background log persistence. */
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    /** Unbounded channel acting as the internal queue for log strings. */
-    private val channel = Channel<String>(capacity = Channel.UNLIMITED)
+    /** Bounded queue prevents diagnostics from exhausting memory during bursts. */
+    private data class LogEntry(val line: String? = null, val flushed: kotlinx.coroutines.CompletableDeferred<Unit>? = null)
+    private val channel = Channel<LogEntry>(capacity = 512)
+    private val droppedEvents = java.util.concurrent.atomic.AtomicLong()
+    private val mutableStorageError = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
+    val storageError: kotlinx.coroutines.flow.StateFlow<String?> = mutableStorageError
+    private var diagnosticFiles: DiagnosticFiles? = null
 
     /** Mutex to safely synchronize file writes, trimming, and deletions. */
     private val fileMutex = Mutex()
 
-    /** Ongoing buffered writer for appending to the log file. */
-    private var logWriter: BufferedWriter? = null
-
-    /** Tracks the current number of lines in the log file to trigger rotation. */
-    private var lineCount = 0
 
     /** Reference to the app preferences to check logging enablement dynamically. */
     private var prefs: AppPreferences? = null
 
-    /** Pointer to the internal application diagnostic log file. */
-    private var logFile: File? = null
 
-    /** Indicates whether log redaction is explicitly enabled for the remote process context. */
-    private var remoteRedactionEnabled: Boolean = true
 
     /**
      * Helper to determine if we are currently running in a secondary/remote process context
@@ -101,7 +88,7 @@ object AppLogger {
      * which are unavailable in remote IPC contexts.
      */
     private val isRedactionEnabled: Boolean
-        get() = if (isRemoteProcess) remoteRedactionEnabled else prefs?.isDebugEnabled() != true
+        get() = true
 
     /**
      * An AIDL stub implementation acting as an IPC hook.
@@ -171,51 +158,29 @@ object AppLogger {
      * @throws IllegalStateException if called from a remote process context. Use [initAsRemote] instead for remote contexts.
      */
     fun init(context: Context) {
+        if (diagnosticFiles != null) return
         if (isRemoteProcess) {
             throw IllegalStateException("init() should not be called from a remote process context. Use initAsRemote() instead.")
         }
-        prefs = AppPreferences(context)
-        logFile = File(context.cacheDir, "app_debug.log")
+        prefs = AppPreferences(context).also { it.setLoggingEnabled(false) }
+        diagnosticFiles = DiagnosticFiles(DiagnosticFiles.directory(context))
 
         // Store the original default uncaught exception handler to ensure we can forward exceptions after flushing
         // logs
         val defaultHandler = Thread.getDefaultUncaughtExceptionHandler()
         Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-            e(TAG, "Caught an uncaught exception, flushing logs to disk before process death...", throwable)
-            flushSync()
+            if (prefs?.isLoggingEnabled() == true) {
+                persistLine("${Date()} [FATAL] ${redact(Log.getStackTraceString(throwable))}")
+            }
             // Forward runtime exception to original uncaught handler
             defaultHandler?.uncaughtException(thread, throwable)
         }
 
         scope.launch {
-            // On initialization, we need to determine how many lines are already in the log file (if it exists)
-            fileMutex.withLock {
-                lineCount = if (logFile?.exists() == true) logFile!!.readLines().size else 0
-                logWriter = logFile?.let { BufferedWriter(FileWriter(it, true)) }
-            }
-
-            // Continuously consume log messages from the channel and write them to disk, while managing log rotation.
-            for (line in channel) {
+            for (entry in channel) {
                 fileMutex.withLock {
-                    logWriter?.apply {
-                        write(line)
-                        newLine()
-                        flush()
-                        lineCount++
-                    }
-
-                    if (lineCount >= MAX_LOG_LINES) {
-                        logWriter?.close()
-                        logFile?.let { file ->
-                            if (file.exists()) {
-                                val lines = file.readLines()
-                                val keptLines = lines.takeLast(LINES_TO_KEEP)
-                                file.writeText(keptLines.joinToString("\n") + "\n")
-                                lineCount = keptLines.size
-                            }
-                        }
-                        logWriter = logFile?.let { BufferedWriter(FileWriter(it, true)) }
-                    }
+                    entry.line?.let(::persistLine)
+                    entry.flushed?.complete(Unit)
                 }
             }
         }
@@ -229,30 +194,31 @@ object AppLogger {
      * **NOTE**: Remote logging cannot pass the raw Throwable object in case of exceptions, so it is converted as a string and appended to the message.
      *
      * @param callback The AIDL interface hooked to the main process.
-     * @param isRedactionEnabled Whether log redaction is active (passed from the main app to control log redaction).
+     * @param isRedactionEnabled Retained for IPC compatibility; phone-number redaction remains enabled.
      * @throws IllegalStateException if called from the main application process context. Use [init] instead for the main app process.
      */
+    @Suppress("UNUSED_PARAMETER")
     fun initAsRemote(callback: ILogCallback, isRedactionEnabled: Boolean = true) {
         if (!isRemoteProcess) {
             throw IllegalStateException("initAsRemote() should only be called from a remote process context. Use init() for the main app process.")
         }
         this.remoteCallback = callback
-        this.remoteRedactionEnabled = isRedactionEnabled
         Log.i(TAG, "Initialized in remote process context. All logs will be forwarded via IPC to the main application process.")
     }
 
-    /**
-     * Safely deletes the existing internal log file and resets the writing stream
-     * and line tracking metrics. Execution is managed sequentially via a Mutex lock.
-     */
-    fun clearLogs() {
-        scope.launch {
-            fileMutex.withLock {
-                logWriter?.close()
-                logFile?.delete()
-                logWriter = logFile?.let { BufferedWriter(FileWriter(it, true)) }
-                lineCount = 0
-            }
+    /** Shell snapshots share the app log lock during rotation and export. */
+    fun appendDiagnosticSnapshot(snapshot: String) {
+        val store = diagnosticFiles ?: throw java.io.IOException("Logger is not initialized")
+        store.append("shizuku.log", redact(snapshot) + "\n")
+    }
+
+    private fun persistLine(line: String) {
+        try {
+            diagnosticFiles?.append("app.log", line + "\n")
+            mutableStorageError.value = null
+        } catch (failure: java.io.IOException) {
+            mutableStorageError.value = failure.message ?: "Log write failed"
+            Log.e(TAG, "Log write failed; next event will retry", failure)
         }
     }
 
@@ -265,55 +231,56 @@ object AppLogger {
      * @return [android.content.ContentResolver] output stream
      */
     fun exportReport(context: Context, destinationUri: Uri) {
-        val file = logFile ?: return
+        flushSync()
+        val store = diagnosticFiles ?: throw java.io.IOException("Logger not initialized")
         val prefs = AppPreferences(context)
-        context.contentResolver.openOutputStream(destinationUri, "w")?.use { outputStream ->
+        (context.contentResolver.openOutputStream(destinationUri, "w") ?: throw java.io.IOException("Cannot open log destination")).use { outputStream ->
             PrintWriter(OutputStreamWriter(outputStream, Charsets.UTF_8)).use { writer ->
                 writer.println("=== ShizuCallRecorder AppLogger Export ===")
                 writer.println("Generated: ${SimpleDateFormat("yyyy-MM-dd HH:mm:ss z", Locale.CANADA).format(Date())}")
                 writer.println("App Version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
-                writer.println("Shizuku Supported Server API: ${Shizuku.getLatestServiceVersion()}")
-                writer.println("Manufacturer: ${Build.MANUFACTURER}")
-                writer.println("Model: ${Build.MODEL}")
-                writer.println("Device: ${Build.DEVICE}")
-                writer.println("Product: ${Build.PRODUCT}")
-                writer.println("Android Version: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
-                writer.println("Installed Application UID (Kernel): ${Process.myUid()}")
-                writer.println("Current UserHandle ID (User Profile): ${Process.myUserHandle().hashCode()}")
-                writer.println("Device Country Iso Estimation: ${PhoneNumberManager.getInstance(context).getDeviceCountryIso()}")
-                writer.println("Log Redaction Disabled / Debug Mode : ${prefs.isDebugEnabled()}")
-                writer.println("Call Detection Method: ${prefs.getCallDetectionMode().key}")
-                writer.println("Notification fallback enabled: ${prefs.isNotificationCallFallbackEnabled()}")
-                writer.println("Notification access: ${context.packageName in androidx.core.app.NotificationManagerCompat.getEnabledListenerPackages(context)}")
-                val compatibility = com.kitsumed.shizucallrecorder.system.audio.VoipCompatibility.inspect()
-                writer.println("VoIP prerequisites: $compatibility")
-                val audio = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
-                writer.println("Audio mode: ${audio.mode}")
-                writer.println("Audio output types: ${audio.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS).map { it.type }}")
-                writer.println()
-                writer.println("=== Call Detection Method Permissions List ===")
-                prefs.getCallDetectionMode().requiredPermissions.forEach { permission ->
-                    val grantedState = if (permission.isGranted(context)) "Granted" else "MISSING"
+                writer.println("Dropped log events: ${droppedEvents.get()}; storage error: ${mutableStorageError.value}")
+                try {
+                    writer.println("Shizuku Supported Server API: ${Shizuku.getLatestServiceVersion()}")
+                    writer.println("Manufacturer: ${Build.MANUFACTURER}")
+                    writer.println("Model: ${Build.MODEL}")
+                    writer.println("Device: ${Build.DEVICE}")
+                    writer.println("Product: ${Build.PRODUCT}")
+                    writer.println("Android Version: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
+                    writer.println("Installed Application UID (Kernel): ${Process.myUid()}")
+                    writer.println("Current UserHandle ID (User Profile): ${Process.myUserHandle().hashCode()}")
+                    writer.println("Device Country Iso Estimation: ${PhoneNumberManager.getInstance(context).getDeviceCountryIso()}")
+                    writer.println("Phone-number redaction: enabled; Debug mode: ${prefs.isDebugEnabled()}")
+                    writer.println("Call Detection Method: ${prefs.getCallDetectionMode().key}")
+                    writer.println("Notification fallback enabled: ${prefs.isNotificationCallFallbackEnabled()}")
+                    writer.println("Notification access: ${context.packageName in androidx.core.app.NotificationManagerCompat.getEnabledListenerPackages(context)}")
+                    val compatibility = com.kitsumed.shizucallrecorder.system.audio.VoipCompatibility.inspect()
+                    writer.println("VoIP prerequisites: $compatibility")
+                    val audio = context.getSystemService(Context.AUDIO_SERVICE) as android.media.AudioManager
+                    writer.println("Audio mode: ${audio.mode}")
+                    writer.println("Audio output types: ${audio.getDevices(android.media.AudioManager.GET_DEVICES_OUTPUTS).map { it.type }}")
+                    writer.println()
+                    writer.println("=== Call Detection Method Permissions List ===")
+                    prefs.getCallDetectionMode().requiredPermissions.forEach { permission ->
+                        val grantedState = if (permission.isGranted(context)) "Granted" else "MISSING"
 
-                    // Determine the type of permission and specific name based on the sealed class subclass
-                    val (type, name) = when (permission) {
-                        is AppPermission.Runtime -> "Runtime" to permission.manifestString
-                        is AppPermission.Elevated.AppOp -> "AppOp" to permission.permissionIdentifier
+                        // Determine the type of permission and specific name based on the sealed class subclass
+                        val (type, name) = when (permission) {
+                            is AppPermission.Runtime -> "Runtime" to permission.manifestString
+                            is AppPermission.Elevated.AppOp -> "AppOp" to permission.permissionIdentifier
+                        }
+
+                        writer.println("[$type] $name: $grantedState")
                     }
-
-                    writer.println("[$type] $name: $grantedState")
+                    writer.println("==============================================")
+                } catch (failure: Exception) {
+                    writer.println("Metadata unavailable: ${redact(failure.toString())}")
                 }
-                writer.println("==============================================")
                 writer.println()
                 writer.flush()
+                if (writer.checkError()) throw java.io.IOException("Cannot write report header")
 
-                if (file.exists()) {
-                    file.inputStream().use { inputStream ->
-                        inputStream.copyTo(outputStream)
-                    }
-                } else {
-                    w(TAG, "No logs found in internal storage to export.")
-                }
+                store.writeTo(outputStream)
             }
         }
     }
@@ -377,7 +344,7 @@ object AppLogger {
                 return
             }
             try {
-                remoteCallback?.onLogEvent(level, tag, message, t?.let { Log.getStackTraceString(it) })
+                remoteCallback?.onLogEvent(level, tag, redact(message).take(16 * 1024), t?.let { redact(Log.getStackTraceString(it)).take(16 * 1024) })
             } catch (e: Exception) {
                 Log.v(TAG, "Failed to send log event via IPC callback, likely due to remote process death. Message was: $message", e)
             }
@@ -388,40 +355,31 @@ object AppLogger {
         if (prefs?.isLoggingEnabled() != true) return
 
         val time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
-        val fullMessage = message + (t?.let { "\n${Log.getStackTraceString(it)}" } ?: "")
+        val fullMessage = redact(message + (t?.let { "\n${Log.getStackTraceString(it)}" } ?: "")).take(16 * 1024)
 
         val formattedLine = "$time [$level] $tag: $fullMessage"
-        channel.trySend(formattedLine)
+        if (channel.trySend(LogEntry(line = formattedLine)).isFailure) droppedEvents.incrementAndGet()
     }
 
     /**
      * Redacts highly sensitive personal information (e.g. phone numbers) from the given text
      * before it gets committed to physical storage.
      */
-    private fun redact(msg: String): String {
+    fun redact(msg: String): String {
         val phoneRedactionRegex = Regex("(?<!\\d)(?:\\+?(?:\\d[-.\\s]?){8,14}\\d)(?!\\d)")
         return msg.replace(phoneRedactionRegex, "[PHONE_REDACTED]")
     }
 
     /**
-     * Synchronously drains the logging channel and forcefully writes all pending messages to disk.
-     * This ensures that crucial crash traces and late logs are not lost if the process is
-     * abruptly killed before the asynchronous IO worker can process them.
+     * Export barrier waits for earlier queued writes without racing the asynchronous consumer.
      */
     private fun flushSync() {
-        val file = logFile ?: return
-        try {
-            FileWriter(file, true).use { writer ->
-                var message = channel.tryReceive().getOrNull()
-                while (message != null) {
-                    writer.write(message)
-                    writer.append('\n')
-                    message = channel.tryReceive().getOrNull()
-                }
-                writer.flush()
+        kotlinx.coroutines.runBlocking {
+            kotlinx.coroutines.withTimeout(5000) {
+                val flushed = kotlinx.coroutines.CompletableDeferred<Unit>()
+                channel.send(LogEntry(flushed = flushed))
+                flushed.await()
             }
-        } catch (_: Exception) {
-            // We're already crashing, ignore I/O errors here so we don't block the actual crash from propagating.
         }
     }
 }

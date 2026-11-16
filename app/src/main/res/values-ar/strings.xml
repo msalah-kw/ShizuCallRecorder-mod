@@ -156,14 +156,9 @@
     <string name="audio_source_voice_call_downlink_description">يسجل فقط طرف الشخص الآخر من المكالمة الهاتفية (الوصلة الهابطة).</string>
     <string name="settings_debug_logging_enabled">تمكين تسجيل السجلات</string>
     <string name="settings_debug_logging_enabled_description">للإبلاغ عن خطأ، قم بتمكين هذا الخيار، وأعد تشغيل التطبيق، ثم أعد إنتاج المشكلة.</string>
-    <string name="settings_debug_logging_title">خطوات الإبلاغ عن الأخطاء</string>
-    <string name="settings_debug_logging_steps">1. تحقق مما إذا كانت مشكلتك قد تم الإبلاغ عنها مسبقاً على GitHub، وإذا لم تكن كذلك، فتابع.\n2. أعد إنتاج الخطأ مع إبقاء تسجيل السجلات ممكناً.\n3. اضغط على إنشاء تقرير أدناه لحفظ السجلات على هاتفك.\n4. اضغط على إبلاغ على GitHub لفتح مشكلة جديدة، واملأ الحقول، وأرفق ملف السجل.</string>
-    <string name="settings_debug_logging_step_warning">يرجى مراجعة الملف المُنشأ للتأكد من خلوه من المعلومات الحساسة قبل مشاركته. قم بتعطيل تسجيل السجلات بمجرد الانتهاء.</string>
-    <string name="settings_debug_logging_step_warning_no_redaction">⚠️ وضع تصحيح الأخطاء مُفعّل. تم تعطيل تنقيح السجلات (redaction).</string>
     <string name="settings_debug_logging_generate_report">إنشاء تقرير</string>
     <string name="settings_debug_logging_report_on_github">الإبلاغ على GitHub</string>
     <string name="settings_debug_mode">تمكين وضع تصحيح الأخطاء</string>
-    <string name="settings_debug_mode_description">عرض خيارات المطورين، وتعطيل تنقيح السجلات.</string>
     <string name="settings_debug_caller_number">رقم هاتف تصحيح الأخطاء</string>
     <string name="general_play">تشغيل</string>
     <string name="post_recording_notification_unknown_caller">متصل مجهول أو غير معروف</string>

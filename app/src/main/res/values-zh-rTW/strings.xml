@@ -130,14 +130,9 @@
     <string name="audio_source_voice_call_downlink_description">僅錄製電話通話中對方的聲音（下行）。</string>
     <string name="settings_debug_logging_enabled">啟用日誌記錄</string>
     <string name="settings_debug_logging_enabled_description">若要回報錯誤，請啟用此選項、重新啟動應用程式，然後重現問題。</string>
-    <string name="settings_debug_logging_title">錯誤回報步驟</string>
-    <string name="settings_debug_logging_steps">1. 檢查 GitHub 上是否已有相同問題的回報；若沒有，請繼續。\n 2. 保持啟用日誌記錄，並重現錯誤。\n 3. 按下方的「產生報告」，將日誌儲存至手機。\n 4. 按下「在 GitHub 上回報」以建立新議題，填寫各欄位並附上日誌檔案。</string>
-    <string name="settings_debug_logging_step_warning">分享前，請檢查產生的檔案是否包含敏感資訊。完成後請停用日誌記錄。</string>
-    <string name="settings_debug_logging_step_warning_no_redaction">⚠️ 偵錯模式已開啟。日誌遮蔽功能已停用。</string>
     <string name="settings_debug_logging_generate_report">產生報告</string>
     <string name="settings_debug_logging_report_on_github">在 GitHub 上回報</string>
     <string name="settings_debug_mode">啟用偵錯模式</string>
-    <string name="settings_debug_mode_description">顯示開發人員選項，並停用日誌遮蔽功能。</string>
     <string name="settings_debug_caller_number">偵錯電話號碼</string>
     <string name="settings_view_licenses">查看授權資訊</string>
     <string name="settings_open_github_Wiki">開啟 Wiki</string>

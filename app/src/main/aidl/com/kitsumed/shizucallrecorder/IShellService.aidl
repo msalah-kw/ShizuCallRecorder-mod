@@ -83,5 +83,7 @@ interface IShellService {
      * MUST call [kotlin.system.exitProcess] so the entire shell process is terminated.
      * This is the special transaction code used by Shizuku to "destroy" the process.
      */
+    String collectDiagnosticSnapshot() = 9;
+
     void destroy() = 16777114;
 }

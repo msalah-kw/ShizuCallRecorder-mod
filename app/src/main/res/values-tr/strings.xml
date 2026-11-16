@@ -93,14 +93,9 @@
     <string name="audio_source_voice_call_downlink_description">Aramada yalnızca karşı tarafı (downlink) kaydeder.</string>
     <string name="settings_debug_logging_enabled">Günlük kaydını etkinleştir</string>
     <string name="settings_debug_logging_enabled_description">Hata bildirmek için bunu etkinleştirin, uygulamayı yeniden başlatın ve sorunu yeniden oluşturun.</string>
-    <string name="settings_debug_logging_title">Hata bildirme adımları</string>
-    <string name="settings_debug_logging_steps">1. Sorununuzun GitHub\'da daha önce bildirilip bildirilmediğini kontrol edin; bildirilmemişse devam edin.\n 2. Günlük kaydı etkinken hatayı yeniden oluşturun.\n 3. Günlükleri telefonunuza kaydetmek için aşağıdaki Rapor Oluştur düğmesine basın.\n 4. GitHub\'da Bildir düğmesine basarak yeni bir konu açın, alanları doldurun ve günlük dosyasını ekleyin.</string>
-    <string name="settings_debug_logging_step_warning">Paylaşmadan önce lütfen oluşturulan dosyayı hassas bilgiler açısından gözden geçirin. İşiniz bitince günlük kaydını devre dışı bırakın.</string>
-    <string name="settings_debug_logging_step_warning_no_redaction">⚠️ Hata ayıklama modu AÇIK. Günlük gizleme devre dışı.</string>
     <string name="settings_debug_logging_generate_report">Rapor oluştur</string>
     <string name="settings_debug_logging_report_on_github">GitHub\'da bildir</string>
     <string name="settings_debug_mode">Hata ayıklama modunu etkinleştir</string>
-    <string name="settings_debug_mode_description">Geliştirici seçeneklerini göster, günlük gizlemeyi devre dışı bırak.</string>
     <string name="settings_debug_caller_number">Hata ayıklama telefon numarası</string>
     <string name="settings_view_licenses">Lisansları görüntüle</string>
     <string name="contact_search_hint">Ad veya numara ile ara...</string>

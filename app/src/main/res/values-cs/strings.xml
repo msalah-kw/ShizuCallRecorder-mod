@@ -137,14 +137,9 @@
     <string name="audio_source_voice_call_downlink_description">Nahrává pouze druhou stranu telefonního hovoru (příchozí zvuk).</string>
     <string name="settings_debug_logging_enabled">Zapnout protokolování</string>
     <string name="settings_debug_logging_enabled_description">Pro nahlášení chyby tuto možnost zapněte, restartujte aplikaci a reprodukujte problém.</string>
-    <string name="settings_debug_logging_title">Jak nahlásit chybu</string>
-    <string name="settings_debug_logging_steps">1. Zkontrolujte, zda už váš problém nebyl nahlášen na GitHubu. Pokud ne, pokračujte.\n2. Zopakujte chybu se zapnutým protokolováním.\n3. Klepnutím na Vygenerovat hlášení níže uložte logy do telefonu.\n4. Klepnutím na Nahlásit na GitHubu otevřete nové issue, vyplňte pole a přiložte soubor s logem.</string>
-    <string name="settings_debug_logging_step_warning">Před sdílením prosím zkontrolujte, zda vygenerovaný soubor neobsahuje citlivé informace. Po dokončení protokolování vypněte.</string>
-    <string name="settings_debug_logging_step_warning_no_redaction">⚠️ Režim ladění je zapnutý. Citlivé údaje v logách nejsou maskovány.</string>
     <string name="settings_debug_logging_generate_report">Vygenerovat report</string>
     <string name="settings_debug_logging_report_on_github">Nahlásit chybu na GitHub</string>
     <string name="settings_debug_mode">Povolit režim ladění</string>
-    <string name="settings_debug_mode_description">Zobrazí vývojářské možnosti a vypne maskování citlivých údajů v logách.</string>
     <string name="settings_debug_caller_number">Testovací telefonní číslo</string>
     <string name="settings_view_licenses">Zobrazit licenci</string>
     <string name="settings_open_github_Wiki">Otevřít Wiki</string>

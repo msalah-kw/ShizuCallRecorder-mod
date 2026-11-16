@@ -63,7 +63,8 @@ class RecorderInterfaceTest {
         compose.onNodeWithText(app.getString(R.string.audio_bitrate_kbps, preferences.getAudioBitRate() / 1000)).assertIsDisplayed()
         screenshot("03-audio-light")
         compose.onNodeWithText(app.getString(R.string.general_settings)).performClick()
-        compose.onNodeWithText(app.getString(R.string.settings_language)).assertIsDisplayed()
+        compose.onNodeWithText(app.getString(R.string.diagnostics_start)).assertIsDisplayed()
+        compose.onNodeWithText(app.getString(R.string.diagnostics_save)).assertIsDisplayed()
         screenshot("04-settings-light")
         compose.onNodeWithText(app.getString(R.string.ui_nav_home)).performClick()
         compose.onNodeWithText(app.getString(R.string.general_incoming)).assertIsOn()
@@ -116,7 +117,7 @@ class RecorderInterfaceTest {
     fun shortLandscapeWindow_keepsAllDestinationsReachable() {
         showSettings()
         compose.onNodeWithText(app.getString(R.string.general_settings)).assertIsDisplayed().performClick()
-        compose.onNodeWithText(app.getString(R.string.settings_language)).assertIsDisplayed()
+        compose.onNodeWithText(app.getString(R.string.diagnostics_start)).performScrollTo().assertIsDisplayed()
         screenshot("11-settings-landscape")
     }
 

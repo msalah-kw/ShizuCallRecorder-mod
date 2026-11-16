@@ -271,19 +271,9 @@
     <!-- Settings Screen: Debug Section -->
     <string name="settings_debug_logging_enabled">Enable log recording</string>
     <string name="settings_debug_logging_enabled_description">To report a bug, enable this, restart the app, and reproduce the issue.</string>
-    <string name="settings_debug_logging_title">Bug Reporting Steps</string>
-    <string name="settings_debug_logging_steps">
-        1. Check if your issue has already been reported on GitHub, if not, continue.\n
-        2. Reproduce the bug while keeping log recording enabled.\n
-        3. Press Generate Report below to save the logs to your phone.\n
-        4. Press Report on GitHub to open a new issue, fill up the fields, and attach the log file.
-    </string>
-    <string name="settings_debug_logging_step_warning">Please review the generated file for sensitive info before sharing. Disable log recording once done.</string>
-    <string name="settings_debug_logging_step_warning_no_redaction">⚠️ Debug Mode is ON. Log redaction is disabled.</string>
     <string name="settings_debug_logging_generate_report">Generate Report</string>
     <string name="settings_debug_logging_report_on_github">Report on GitHub</string>
     <string name="settings_debug_mode">Enable debug mode</string>
-    <string name="settings_debug_mode_description">Show developers options, disable log redaction.</string>
     <string name="settings_debug_caller_number">Debug phone number</string>
     <string name="settings_debug_action_ringing">Ringing</string>
     <string name="settings_debug_action_offhook">Connected</string>

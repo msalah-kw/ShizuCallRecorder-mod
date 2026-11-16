@@ -186,6 +186,7 @@ class RecordingSessionTest {
     }
 
     class RemoteShell(private val acceptStart: Boolean, private val finalizationResult: Boolean = true) : IShellService.Stub() {
+        override fun collectDiagnosticSnapshot(): String = ""
         var callback: IRecordingCallback? = null
         var stopCount = 0
         var stopGate: CountDownLatch? = null

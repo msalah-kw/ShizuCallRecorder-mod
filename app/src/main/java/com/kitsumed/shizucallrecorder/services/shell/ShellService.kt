@@ -124,6 +124,10 @@ class ShellService : IShellService.Stub {
      * Called by Shizuku when it wants to shut down this user service.
      * @see IShellService.destroy
      */
+    override fun collectDiagnosticSnapshot(): String = clearIdentity {
+        DiagnosticSnapshot.collect()
+    }
+
     override fun destroy() {
         AppLogger.i("ShellService.destroy() – terminating shell process")
         stopRecording()

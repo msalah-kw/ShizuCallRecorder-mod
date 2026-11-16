@@ -147,14 +147,9 @@
     <string name="audio_source_voice_call_downlink_description">Записва само гласа на другия участник в телефонния разговор (downlink).</string>
     <string name="settings_debug_logging_enabled">Включване на диагностичния журнал</string>
     <string name="settings_debug_logging_enabled_description">За да съобщите за грешка, включете тази опция, рестартирайте приложението и възпроизведете проблема.</string>
-    <string name="settings_debug_logging_title">Стъпки за докладване на грешка</string>
-    <string name="settings_debug_logging_steps">1. Проверете дали проблемът вече е докладван в GitHub. Ако не е, продължете.\n2. Възпроизведете грешката, докато записването на журнал е включено.\n3. Натиснете „Генериране на отчет“ по-долу, за да запазите журнала в телефона.\n4. Натиснете „Докладване в GitHub“, за да създадете нов сигнал, попълнете полетата и прикачете файла с журнала.</string>
-    <string name="settings_debug_logging_step_warning">Преди споделяне прегледайте генерирания файл за чувствителна информация. След това изключете записването на журнал.</string>
-    <string name="settings_debug_logging_step_warning_no_redaction">⚠️ Режимът за отстраняване на грешки е ВКЛЮЧЕН. Скриването на чувствителни данни в журнала е изключено.</string>
     <string name="settings_debug_logging_generate_report">Генериране на отчет</string>
     <string name="settings_debug_logging_report_on_github">Докладване в GitHub</string>
     <string name="settings_debug_mode">Включване на режима за отстраняване на грешки</string>
-    <string name="settings_debug_mode_description">Показва опциите за разработчици и изключва скриването на чувствителни данни в журнала.</string>
     <string name="settings_debug_caller_number">Тестов телефонен номер</string>
     <string name="settings_view_licenses">Преглед на лицензите</string>
     <string name="settings_open_github_Wiki">Отваряне на уикито</string>

@@ -72,6 +72,10 @@
             android:taskAffinity=""
             android:exported="false" />
 
+        <service android:name=".services.DiagnosticService" android:exported="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User-started call recorder fault diagnosis with bounded Shizuku audio snapshots and a stop action." />
+        </service>
+
         <!-- The InCallService implementation, will be registered as an IN_CALL_SERVICE_TYPE_NON_UI later on by the OS -->
         <service
             android:name=".services.callDetection.incall.InCallService"

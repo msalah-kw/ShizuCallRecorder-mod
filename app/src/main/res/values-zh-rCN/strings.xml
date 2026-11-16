@@ -70,7 +70,6 @@
     <string name="settings_audio_bitrate">码率</string>
     <string name="settings_audio_source">音源</string>
     <string name="audio_source_voice_call_description">同时录制双方的声音，即原始音频。将会包含运营商的提示铃音。</string>
-    <string name="settings_debug_logging_title">请参照以下步骤反馈Bug：</string>
     <string name="settings_debug_logging_enabled_description">若要反馈Bug，请先开启此开关，然后在重启App之后再重复您刚才的操作。</string>
     <string name="settings_debug_logging_enabled">记录运行日志</string>
     <string name="settings_debug_logging_report_on_github">反馈到GitHub</string>
@@ -90,11 +89,8 @@
     <string name="settings_show_toasts">显示一句话消息（Toast）</string>
     <string name="audio_source_voice_call_uplink_description">仅录制您的声音（仅上行）。</string>
     <string name="audio_source_voice_call_downlink_description">仅录制对方的声音（仅下行）。</string>
-    <string name="settings_debug_logging_step_warning">上传文件之前，请务必先检查一下文件内容是否涉及您的隐私信息。操作完毕后，请立即禁用此功能。</string>
-    <string name="settings_debug_logging_step_warning_no_redaction">⚠️调试模式已经开启，将不再对日志进行任何隐私优化。</string>
     <string name="settings_debug_logging_generate_report">生成日志文件</string>
     <string name="settings_debug_mode">开启调试模式</string>
-    <string name="settings_debug_mode_description">将显示开发者选项，并停止对日志进行隐私优化。</string>
     <string name="settings_debug_caller_number">请输入用于调试的电话号码</string>
     <string name="settings_view_licenses">阅读许可协议</string>
     <string name="contact_search_hint">输入姓名或电话号码来搜索…</string>
@@ -123,7 +119,6 @@
     <string name="permission_shizuku_description">Shizuku权限用于经由scrcpy启动录音（ShellService）进程。</string>
     <string name="settings_shizuku_start_on_record_desc">仅在手动开始录音，或者自动录音的规则被触发时启动Shizuku服务</string>
     <string name="audio_source_voice_comm_description">麦克风音频源（本意是面向语音通话的系统接口），内置降噪功能。</string>
-    <string name="settings_debug_logging_steps">1、请先确认一下，您想提的问题是否已经有人反馈过了（包括Closed Issues）。如果确认没有，请继续。\n2、打开日志记录功能，然后尝试重现要反馈的错误。\n3、点击下方的“生成日志文件”按钮，将日志保存至您的设备。\n4、点击“反馈到GitHub”按钮，创建新的 Issue，填写相关的信息并上传日志文件。</string>
     <string name="recording_toast_standby">即将录制通话：%1$s。</string>
     <string name="settings_shizuku_keep_alive_desc">结束通话时保持Shizuku继续运行（仅在开始通话时触发自启动）</string>
     <string name="settings_shizuku_keep_alive">保持Shizuku进程常驻</string>
